@@ -14,7 +14,6 @@ class HTTPConnection : public std::enable_shared_from_this<HTTPConnection>
 public:
     HTTPConnection(boost::asio::ip::tcp::socket socket, const HttpRequestHanlder& http_handler);
     void start();
-    ~HTTPConnection();
 private:
     void read_request();
     void process_request();
@@ -31,7 +30,7 @@ private:
 
 
 HTTPConnection::HTTPConnection(boost::asio::ip::tcp::socket socket, const HttpRequestHanlder &http_handler) :
-    http_handler_(http_handler), socket_(std::move(socket)), deadline_{socket_.get_executor(), std::chrono::seconds(5)}
+    http_handler_(http_handler), socket_(std::move(socket)), deadline_{socket_.get_executor(), std::chrono::seconds(0)}
 {
 
 }
@@ -40,11 +39,6 @@ void HTTPConnection::start()
 {
     read_request();
     check_deadline();
-}
-
-HTTPConnection::~HTTPConnection()
-{
-    std::cout << "distructor " << std::endl;
 }
 
 void HTTPConnection::read_request()
@@ -71,10 +65,15 @@ void HTTPConnection::process_request()
     std::string content(boost::asio::buffers_begin(dynamicBuffer), boost::asio::buffers_end(dynamicBuffer));
 
     std::string result = "";
-    std::cout << "start" << std::endl;
+//    std::cout << "start" << std::endl;
 
     auto ret = http_handler_(method, path, content, result);
-    std::cout << "finished" << std::endl;
+    int counter = 5;
+    while(counter) {
+        std::this_thread::sleep_for(std::chrono::seconds(100));
+        counter--;
+    }
+//    std::cout << "finished" << std::endl;
     response_.result(ret);
     response_.set(boost::beast::http::field::content_type, "text/plain");
     boost::beast::ostream(response_.body()) << result;
@@ -85,7 +84,7 @@ void HTTPConnection::write_response()
 {
     auto self = shared_from_this();
 
-//    response_.set(boost::beast::http::field::content_length, response_.body().size());
+    //    response_.set(boost::beast::http::field::content_length, response_.body().size());
 
     boost::beast::http::async_write(socket_, response_, [self](boost::beast::error_code ec, std::size_t)
     {
@@ -96,6 +95,7 @@ void HTTPConnection::write_response()
 
 void HTTPConnection::check_deadline()
 {
+    return;
     auto self = shared_from_this();
 
     deadline_.async_wait(
@@ -114,7 +114,7 @@ BoostHttpServer::BoostHttpServer(const std::string& ip_address, unsigned short p
 }
 
 BoostHttpServer::BoostHttpServer(const std::string& ip_address, unsigned short port, const std::shared_ptr<PathParser>& path_parser) :
-    ip_acceptor_({ioc, {boost::asio::ip::make_address(ip_address), port}}), tcp_socekt_{ioc}, path_parser_(path_parser)
+    ip_acceptor_({ioc_, {boost::asio::ip::make_address(ip_address), port}}), tcp_socekt_{ioc_}, path_parser_(path_parser)
 {
     is_running_ = false;
     methods_list_[boost::beast::http::verb::get]         = RestMethods::GET;
@@ -170,12 +170,22 @@ boost::beast::http::status BoostHttpServer::handle_request(const boost::beast::h
 
 void BoostHttpServer::start()
 {
-    ioc.run();
+    std::vector<std::thread> v;
+    v.reserve(3);
+    for(auto i = 0; i < 3; i++) {
+        v.emplace_back(
+                    [this]
+        {
+            ioc_.run();
+        });
+    }
+
+    ioc_.run();
 }
 
 void BoostHttpServer::stop()
 {
-    ioc.stop();
+    ioc_.stop();
 }
 
 bool BoostHttpServer::is_running() const

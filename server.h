@@ -50,7 +50,7 @@ private:
     std::string main_url_;
     bool is_running_;
 
-    boost::asio::io_context ioc {1};
+    boost::asio::io_context ioc_ {3};
     boost::asio::ip::tcp::acceptor ip_acceptor_;
     boost::asio::ip::tcp::socket tcp_socekt_;
 
