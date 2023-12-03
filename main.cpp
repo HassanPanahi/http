@@ -261,7 +261,7 @@ int get_info(const std::vector<std::string>& inputs, std::string& putdata, std::
 int main(int argc, char* argv[])
 {
     rest::BoostHttpServer server("0.0.0.0", 8585);
-    auto handler_callback = std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    server.add_path(rest::RestMethods::GET, "count", handler_callback);
+    //TODO(HP): /info always use / for begin of uri address... fix this!!!
+    server.add_path(rest::RestMethods::GET, "/info", std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     server.start();
 }

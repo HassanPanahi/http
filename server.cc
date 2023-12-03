@@ -159,7 +159,8 @@ boost::beast::http::status BoostHttpServer::handle_request(const boost::beast::h
             std::vector<std::string> inputs;
             bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
             if (is_same) {
-                ret = static_cast<boost::beast::http::status>(map_node.second.second(inputs, put_data, result));
+                auto handler = map_node.second.second;
+                ret = static_cast<boost::beast::http::status>(handler(inputs, put_data, result));
                 break;
             }
         }
@@ -170,10 +171,6 @@ boost::beast::http::status BoostHttpServer::handle_request(const boost::beast::h
 void BoostHttpServer::start()
 {
     ioc.run();
-}
-
-void BoostHttpServer::handle_method(const RestMethods method, boost::beast::http::verb message)
-{
 }
 
 void BoostHttpServer::stop()

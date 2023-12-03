@@ -26,7 +26,7 @@ enum class RestMethods{
 };
 
 using PutFunctionPtr = std::function<int (const std::vector<std::string>&, std::string& put_data, std::string& response)>;
-using PutFunctionPtrMSG = std::function<int (const std::vector<std::string>&, google::protobuf::Message* const receive_msg, google::protobuf::Message* const response_msg)>;
+//using PutFunctionPtrMSG = std::function<int (const std::vector<std::string>&, google::protobuf::Message* const receive_msg, google::protobuf::Message* const response_msg)>;
 
 class BoostHttpServer
 {
@@ -59,9 +59,9 @@ private:
     std::map<boost::beast::http::verb, RestMethods> methods_list_;
 
     std::map<RestMethods, std::map<std::string, std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>> > handler_default_;
-    std::map<RestMethods, std::map<std::string, std::pair<std::shared_ptr<PathAddress>, PutFunctionPtrMSG>> > handler_protobuf_msgs_;
+//    std::map<RestMethods, std::map<std::string, std::pair<std::shared_ptr<PathAddress>, PutFunctionPtrMSG>> > handler_protobuf_msgs_;
 
-    void handle_method(const RestMethods method, boost::beast::http::verb message);
+//    void handle_method(const RestMethods method, boost::beast::http::verb message);
     boost::beast::http::status handle_request(const boost::beast::http::verb &method, const std::string& path, std::string &put_data, std::string &result);
 };
 
