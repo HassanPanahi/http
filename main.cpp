@@ -1,3 +1,17 @@
+//
+// Copyright (c) 2017 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+// Official repository: https://github.com/boostorg/beast
+//
+
+//------------------------------------------------------------------------------
+//
+// Example: HTTP server, small
+//
+//------------------------------------------------------------------------------
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -9,6 +23,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include "server.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -40,11 +55,13 @@ public:
     }
 
     // Initiate the asynchronous operations associated with the connection.
-    void start() {
+    void
+    start()
+    {
         read_request();
         check_deadline();
     }
-    ~http_connection() { std::cout << "dis *******" << std::endl;}
+
 private:
     // The socket for the currently connected client.
     tcp::socket socket_;
@@ -59,7 +76,7 @@ private:
     http::response<http::dynamic_body> response_;
 
     // The timer for putting a deadline on connection processing.
-    net::basic_waitable_timer<std::chrono::steady_clock> deadline_{
+    net::steady_timer deadline_{
         socket_.get_executor(), std::chrono::seconds(60)};
 
     // Asynchronously receive a complete request message.
@@ -68,7 +85,12 @@ private:
     {
         auto self = shared_from_this();
 
-        http::async_read( socket_, buffer_, request_, [self](beast::error_code ec, std::size_t bytes_transferred)
+        http::async_read(
+                    socket_,
+                    buffer_,
+                    request_,
+                    [self](beast::error_code ec,
+                    std::size_t bytes_transferred)
         {
             boost::ignore_unused(bytes_transferred);
             if(!ec)
@@ -94,14 +116,6 @@ private:
         default:
             // We return responses indicating an error if
             // we do not recognize the request method.
-            const auto& dynamicBuffer = request_.body().data();
-            std::string content(boost::asio::buffers_begin(dynamicBuffer), boost::asio::buffers_end(dynamicBuffer));
-
-            http::request<http::string_body> newRequest;
-            newRequest.body() = content;
-
-
-            std::cout << "data: " << newRequest.body() << std::endl;
             response_.result(http::status::bad_request);
             response_.set(http::field::content_type, "text/plain");
             beast::ostream(response_.body())
@@ -160,7 +174,7 @@ private:
     {
         auto self = shared_from_this();
 
-        response_.set(http::field::content_length, response_.body().size());
+        response_.content_length(response_.body().size());
 
         http::async_write(
                     socket_,
@@ -191,17 +205,20 @@ private:
 };
 
 // "Loop" forever accepting new connections.
-void http_server(tcp::acceptor& acceptor, tcp::socket& socket)
+void
+http_server(tcp::acceptor& acceptor, tcp::socket& socket)
 {
-    acceptor.async_accept(socket, [&](beast::error_code ec) {
+    acceptor.async_accept(socket,
+                          [&](beast::error_code ec)
+    {
         if(!ec)
             std::make_shared<http_connection>(std::move(socket))->start();
         http_server(acceptor, socket);
     });
 }
 
-int
-main(int argc, char* argv[])
+
+int default_http()
 {
     try
     {
@@ -230,6 +247,21 @@ main(int argc, char* argv[])
     catch(std::exception const& e)
     {
         std::cerr << "Error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
     }
+    return EXIT_FAILURE;
+}
+
+int get_info(const std::vector<std::string>& inputs, std::string& putdata, std::string& response)
+{
+    std::cout << "hello" << std::endl;
+    response = "{ \"name\": \"hassan\" } ";
+    return 200;
+}
+
+int main(int argc, char* argv[])
+{
+    rest::BoostHttpServer server("0.0.0.0", 8585);
+    auto handler_callback = std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    server.add_path(rest::RestMethods::GET, "count", handler_callback);
+    server.start();
 }

@@ -4,23 +4,23 @@
 #include <thread>
 
 
-//int find_request(const RestMethods method, const std::string& path, std::string &put_data, std::string &result);
+//int handle_request(const RestMethods method, const std::string& path, std::string &put_data, std::string &result);
 namespace rest {
 
-using PathFinder = std::function<int (const boost::beast::http::verb& method, const std::string& path, std::string &put_data, std::string &result)>;
+using HttpRequestHanlder = std::function<boost::beast::http::status (const boost::beast::http::verb& method, const std::string& path, std::string &put_data, std::string &result)>;
 
 class HTTPConnection : public std::enable_shared_from_this<HTTPConnection>
 {
 public:
-    HTTPConnection(boost::asio::ip::tcp::socket socket, const PathFinder& path_finder);
+    HTTPConnection(boost::asio::ip::tcp::socket socket, const HttpRequestHanlder& http_handler);
     void start();
+    ~HTTPConnection();
 private:
     void read_request();
     void process_request();
-    void create_response();
     void write_response();
     void check_deadline();
-    PathFinder path_finder_;
+    HttpRequestHanlder http_handler_;
     boost::asio::ip::tcp::socket socket_;
     boost::beast::flat_buffer buffer_{8192}; //TODO(HP): fix this
     boost::beast::http::request<boost::beast::http::dynamic_body> request_;
@@ -30,8 +30,8 @@ private:
 };
 
 
-HTTPConnection::HTTPConnection(boost::asio::ip::tcp::socket socket, const PathFinder &path_finder) :
-    path_finder_(path_finder), socket_(std::move(socket)), deadline_{socket_.get_executor(), std::chrono::seconds(60)}
+HTTPConnection::HTTPConnection(boost::asio::ip::tcp::socket socket, const HttpRequestHanlder &http_handler) :
+    http_handler_(http_handler), socket_(std::move(socket)), deadline_{socket_.get_executor(), std::chrono::seconds(5)}
 {
 
 }
@@ -40,6 +40,11 @@ void HTTPConnection::start()
 {
     read_request();
     check_deadline();
+}
+
+HTTPConnection::~HTTPConnection()
+{
+    std::cout << "distructor " << std::endl;
 }
 
 void HTTPConnection::read_request()
@@ -66,83 +71,23 @@ void HTTPConnection::process_request()
     std::string content(boost::asio::buffers_begin(dynamicBuffer), boost::asio::buffers_end(dynamicBuffer));
 
     std::string result = "";
-    auto handler = path_finder_(method, path, content, result);
+    std::cout << "start" << std::endl;
 
-//    request_.content_length(
-//    auto handler =
-
-
-    //            switch(request_.method())
-    //            {
-    //            case boost::beast::http::verb::get:
-    //                response_.result(boost::beast::http::status::ok);
-    //                response_.set(boost::beast::http::field::server, "Beast");
-    //                create_response();
-    //                break;
-
-    //            default:
-    //                // We return responses indicating an error if
-    //                // we do not recognize the request method.
-    //                response_.result(boost::beast::http::status::bad_request);
-    //                response_.set(boost::beast::http::field::content_type, "text/plain");
-    //                boost::beast::ostream(response_.body())
-    //                        << "Invalid request-method '"
-    //                        << std::string(request_.method_string())
-    //                        << "'";
-    //                break;
-    //            }
-
+    auto ret = http_handler_(method, path, content, result);
+    std::cout << "finished" << std::endl;
+    response_.result(ret);
+    response_.set(boost::beast::http::field::content_type, "text/plain");
+    boost::beast::ostream(response_.body()) << result;
     write_response();
-}
-
-void HTTPConnection::create_response()
-{
-    if(request_.target() == "/count")
-    {
-        response_.set(boost::beast::http::field::content_type, "text/html");
-        boost::beast::ostream(response_.body())
-                << "<html>\n"
-                <<  "<head><title>Request count</title></head>\n"
-                 <<  "<body>\n"
-                  <<  "<h1>Request count</h1>\n"
-                   <<  "<p>There have been "
-                    <<  "hassan"
-                     <<  " requests so far.</p>\n"
-                      <<  "</body>\n"
-                       <<  "</html>\n";
-    }
-    else if(request_.target() == "/time")
-    {
-        response_.set(boost::beast::http::field::content_type, "text/html");
-        boost::beast::ostream(response_.body())
-                <<  "<html>\n"
-                 <<  "<head><title>Current time</title></head>\n"
-                  <<  "<body>\n"
-                   <<  "<h1>Current time</h1>\n"
-                    <<  "<p>The current time is "
-                     <<  " panahi "
-                      <<  " seconds since the epoch.</p>\n"
-                       <<  "</body>\n"
-                        <<  "</html>\n";
-    }
-    else
-    {
-        response_.result(boost::beast::http::status::not_found);
-        response_.set(boost::beast::http::field::content_type, "text/plain");
-        boost::beast::ostream(response_.body()) << "File not found\r\n";
-    }
 }
 
 void HTTPConnection::write_response()
 {
     auto self = shared_from_this();
 
-    response_.set(boost::beast::http::field::content_length, response_.body().size());
+//    response_.set(boost::beast::http::field::content_length, response_.body().size());
 
-    boost::beast::http::async_write(
-                socket_,
-                response_,
-                [self](boost::beast::error_code ec, std::size_t)
+    boost::beast::http::async_write(socket_, response_, [self](boost::beast::error_code ec, std::size_t)
     {
         self->socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
         self->deadline_.cancel();
@@ -164,9 +109,14 @@ void HTTPConnection::check_deadline()
     });
 }
 
-
 BoostHttpServer::BoostHttpServer(const std::string& ip_address, unsigned short port) : BoostHttpServer(ip_address, port, std::make_shared<PathParser>())
 {
+}
+
+BoostHttpServer::BoostHttpServer(const std::string& ip_address, unsigned short port, const std::shared_ptr<PathParser>& path_parser) :
+    ip_acceptor_({ioc, {boost::asio::ip::make_address(ip_address), port}}), tcp_socekt_{ioc}, path_parser_(path_parser)
+{
+    is_running_ = false;
     methods_list_[boost::beast::http::verb::get]         = RestMethods::GET;
     methods_list_[boost::beast::http::verb::put]         = RestMethods::PUT;
     methods_list_[boost::beast::http::verb::delete_]     = RestMethods::DEL;
@@ -177,12 +127,7 @@ BoostHttpServer::BoostHttpServer(const std::string& ip_address, unsigned short p
     methods_list_[boost::beast::http::verb::merge]       = RestMethods::MERGE;
     methods_list_[boost::beast::http::verb::options]     = RestMethods::OPTIONS;
     methods_list_[boost::beast::http::verb::connect]     = RestMethods::CONNECT;
-}
-
-BoostHttpServer::BoostHttpServer(const std::string& ip_address, unsigned short port, const std::shared_ptr<PathParser>& path_parser) :
-    ip_acceptor_({ioc, {boost::asio::ip::make_address(ip_address), port}}), tcp_socekt_{ioc}, path_parser_(path_parser)
-{
-    is_running_ = false;
+    http_server(ip_acceptor_, tcp_socekt_);
 }
 
 void BoostHttpServer::add_path(const RestMethods method, const std::string &uri, const PutFunctionPtr &func)
@@ -193,21 +138,20 @@ void BoostHttpServer::add_path(const RestMethods method, const std::string &uri,
 
 void BoostHttpServer::http_server(boost::asio::ip::tcp::acceptor &acceptor, boost::asio::ip::tcp::socket &socket)
 {
-    auto path_finder = std::bind(&BoostHttpServer::find_request, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
     ip_acceptor_.async_accept(socket, [&](boost::beast::error_code ec) {
         if(!ec) {
-            auto http_connection = std::make_shared<HTTPConnection>(std::move(socket), path_finder);
+            auto http_connection = std::make_shared<HTTPConnection>(std::move(socket), std::bind(&BoostHttpServer::handle_request, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             http_connection->start();
         }
         http_server(acceptor, socket);
     });
 }
 
-int BoostHttpServer::find_request(const boost::beast::http::verb& method, const std::string &path, std::string &put_data, std::string& result)
+boost::beast::http::status BoostHttpServer::handle_request(const boost::beast::http::verb& method, const std::string &path, std::string &put_data, std::string& result)
 {
     auto parser = handler_default_.find(methods_list_[method]);
     result = "This uri doesn't support";
-    int ret = 400;
+    boost::beast::http::status ret = boost::beast::http::status::bad_request;
     if (parser != handler_default_.end()) {
         PathParser path_parser;
         auto rest_node = path_parser.parse(path);
@@ -215,7 +159,7 @@ int BoostHttpServer::find_request(const boost::beast::http::verb& method, const 
             std::vector<std::string> inputs;
             bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
             if (is_same) {
-                ret = map_node.second.second(inputs, put_data, result);
+                ret = static_cast<boost::beast::http::status>(map_node.second.second(inputs, put_data, result));
                 break;
             }
         }
@@ -231,7 +175,6 @@ void BoostHttpServer::start()
 void BoostHttpServer::handle_method(const RestMethods method, boost::beast::http::verb message)
 {
 }
-
 
 void BoostHttpServer::stop()
 {

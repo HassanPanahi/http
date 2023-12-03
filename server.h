@@ -50,7 +50,7 @@ private:
     std::string main_url_;
     bool is_running_;
 
-    boost::asio::io_context ioc;
+    boost::asio::io_context ioc {1};
     boost::asio::ip::tcp::acceptor ip_acceptor_;
     boost::asio::ip::tcp::socket tcp_socekt_;
 
@@ -62,7 +62,7 @@ private:
     std::map<RestMethods, std::map<std::string, std::pair<std::shared_ptr<PathAddress>, PutFunctionPtrMSG>> > handler_protobuf_msgs_;
 
     void handle_method(const RestMethods method, boost::beast::http::verb message);
-    int find_request(const boost::beast::http::verb &method, const std::string& path, std::string &put_data, std::string &result);
+    boost::beast::http::status handle_request(const boost::beast::http::verb &method, const std::string& path, std::string &put_data, std::string &result);
 };
 
 }
