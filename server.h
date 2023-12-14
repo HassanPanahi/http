@@ -9,10 +9,15 @@
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
 #include <boost/asio.hpp>
+#include <string>
+#include <memory>
 
-namespace rest {
+namespace hp {
+namespace http {
 
-enum class RestMethods{
+using uri = std::string;
+
+enum class RestMethods {
     GET,
     PUT,
     DEL,
@@ -25,7 +30,7 @@ enum class RestMethods{
     CONNECT
 };
 
-using PutFunctionPtr = std::function<int (const std::vector<std::string>&, std::string& put_data, std::string& response)>;
+using PutFunctionPtr = std::function<unsigned (const std::vector<std::string>&, std::string& put_data, std::string& response)>;
 //using PutFunctionPtrMSG = std::function<int (const std::vector<std::string>&, google::protobuf::Message* const receive_msg, google::protobuf::Message* const response_msg)>;
 
 class BoostHttpServer
@@ -45,7 +50,6 @@ public:
     void add_path(const RestMethods method, const std::string &uri, const PutFunctionPtr& func);
 
 private:
-    void http_server(boost::asio::ip::tcp::acceptor& acceptor, boost::asio::ip::tcp::socket& socket);
 
     std::string main_url_;
     bool is_running_;
@@ -57,14 +61,14 @@ private:
     std::shared_ptr<PathParser> path_parser_;
     std::vector<std::vector<std::string>> paths_;
     std::map<boost::beast::http::verb, RestMethods> methods_list_;
+    std::map<RestMethods, std::map<uri, std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>> > handler_default_;
 
-    std::map<RestMethods, std::map<std::string, std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>> > handler_default_;
-//    std::map<RestMethods, std::map<std::string, std::pair<std::shared_ptr<PathAddress>, PutFunctionPtrMSG>> > handler_protobuf_msgs_;
 
-//    void handle_method(const RestMethods method, boost::beast::http::verb message);
+    void http_server(boost::asio::ip::tcp::acceptor& acceptor, boost::asio::ip::tcp::socket& socket);
     boost::beast::http::status handle_request(const boost::beast::http::verb &method, const std::string& path, std::string &put_data, std::string &result);
 };
 
-}
+} // namespace
+} // namespace
 
 #endif

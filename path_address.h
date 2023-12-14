@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-namespace rest {
+namespace hp {
 
 // NUMERIC = just index of key, for example /streamer/<idx>/output, "<idx>" is a value. idx must be a int  //TODO(HP): <idx> can be a double
 // STRING = /setting/<string>/1 : <string> can be enything like streamer or encoder
@@ -35,5 +35,6 @@ private:
 
 };
 
-} //rest
+} // namespace
+
 #endif // PATHADDRESS_H

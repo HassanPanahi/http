@@ -1,6 +1,6 @@
 #include "path_address.h"
 
-namespace rest {
+namespace hp {
 
 PathAddress::PathAddress(std::string name, PathMode mode, std::vector<std::string> inputs) : inputs_(inputs), mode_(mode), name_(name)
 {
@@ -31,4 +31,4 @@ std::vector<std::string> PathAddress::get_inputs() const
     return inputs_;
 }
 
-} // namespace rest
+} // namespace

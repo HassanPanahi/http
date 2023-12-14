@@ -2,7 +2,7 @@
 #define PATHPARSER_H
 #include "path_address.h"
 
-namespace rest {
+namespace hp {
 
 class PathParser
 {
@@ -17,5 +17,6 @@ private:
     std::shared_ptr<PathAddress> current_node_;
 };
 
-} //rest
+} // namespace
+
 #endif // PATHPARSER_H

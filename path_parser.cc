@@ -31,7 +31,7 @@ std::vector<std::string> split(const std::string& str, const std::string& delimi
     return result;
 }
 
-namespace rest {
+namespace hp {
 
 PathParser::PathParser()
 {
@@ -108,4 +108,4 @@ void PathParser::set_new_node(const PathMode mode, const std::string name)
     }
 }
 
-} // namespace rest
+} // namespace
