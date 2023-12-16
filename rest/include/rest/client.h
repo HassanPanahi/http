@@ -2,7 +2,6 @@
 #define CLIENT_H
 
 #include <cpprest/http_client.h>
-#include <boost/beast/http.hpp>
 
 using namespace web;
 using namespace http;

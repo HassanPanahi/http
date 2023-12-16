@@ -1,5 +1,5 @@
-#ifndef HTTPCONNECTION_H
-#define HTTPCONNECTION_H
+#ifndef BoostHTTPConnection_H
+#define BoostHTTPConnection_H
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -12,10 +12,10 @@ namespace http {
 
 using HttpRequestHanlder = std::function<boost::beast::http::status (const boost::beast::http::verb& method, const std::string& path, std::string &put_data, std::string &result)>;
 
-class HTTPConnection : public std::enable_shared_from_this<HTTPConnection>
+class BoostHTTPConnection : public std::enable_shared_from_this<BoostHTTPConnection>
 {
 public:
-    HTTPConnection(boost::asio::ip::tcp::socket socket, const HttpRequestHanlder& http_handler);
+    BoostHTTPConnection(boost::asio::ip::tcp::socket socket, const HttpRequestHanlder& http_handler);
     void start();
 private:
     void read_request();
@@ -34,4 +34,4 @@ private:
 } // namespace
 } // namespace
 
-#endif // HTTPCONNECTION_H
+#endif // BoostHTTPConnection_H

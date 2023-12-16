@@ -42,7 +42,7 @@ std::shared_ptr<PathAddress> PathParser::parse(const std::string &full_path)
     root_node_ = nullptr;
     current_node_ = nullptr;
     std::vector<std::string> paths = split(full_path, "/");
-    for (auto path : paths) {
+    for (const auto &path : paths) {
         if (path == "<int>") {
             auto mode = PathMode::NUMERIC;
             set_new_node(mode, path);
@@ -57,7 +57,7 @@ std::shared_ptr<PathAddress> PathParser::parse(const std::string &full_path)
     return root_node_;
 }
 
-bool PathParser::is_same_path(std::shared_ptr<PathAddress> map_node, std::shared_ptr<PathAddress> rest_node, std::vector<std::string> &inputs)
+bool PathParser::is_same_path(const std::shared_ptr<PathAddress>& map_node, const std::shared_ptr<PathAddress>& rest_node, std::vector<std::string>& inputs)
 {
     if (map_node == nullptr && rest_node == nullptr)
         return true;

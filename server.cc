@@ -27,7 +27,7 @@ BoostHttpServer::BoostHttpServer(const std::string& ip_address, unsigned short p
     methods_list_[boost::beast::http::verb::merge]       = RestMethods::MERGE;
     methods_list_[boost::beast::http::verb::options]     = RestMethods::OPTIONS;
     methods_list_[boost::beast::http::verb::connect]     = RestMethods::CONNECT;
-    http_server(ip_acceptor_, tcp_socekt_);
+    accept_connection(ip_acceptor_, tcp_socekt_);
 }
 
 void BoostHttpServer::add_path(const RestMethods method, const std::string &uri, const PutFunctionPtr &func)
@@ -36,14 +36,14 @@ void BoostHttpServer::add_path(const RestMethods method, const std::string &uri,
     handler_default_[method][uri] = std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>(path_node, func);
 }
 
-void BoostHttpServer::http_server(boost::asio::ip::tcp::acceptor &acceptor, boost::asio::ip::tcp::socket &socket)
+void BoostHttpServer::accept_connection(boost::asio::ip::tcp::acceptor &acceptor, boost::asio::ip::tcp::socket &socket)
 {
     ip_acceptor_.async_accept(socket, [&](boost::beast::error_code ec) {
         if(!ec) {
-            auto http_connection = std::make_shared<HTTPConnection>(std::move(socket), std::bind(&BoostHttpServer::handle_request, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+            auto http_connection = std::make_shared<BoostHTTPConnection>(std::move(socket), std::bind(&BoostHttpServer::handle_request, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             http_connection->start();
         }
-        http_server(acceptor, socket);
+        accept_connection(acceptor, socket);
     });
 }
 

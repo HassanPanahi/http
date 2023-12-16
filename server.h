@@ -16,6 +16,7 @@ namespace hp {
 namespace http {
 
 using uri = std::string;
+using PutFunctionPtr = std::function<unsigned (const std::vector<std::string>&, std::string& put_data, std::string& response)>;
 
 enum class RestMethods {
     GET,
@@ -29,9 +30,6 @@ enum class RestMethods {
     OPTIONS,
     CONNECT
 };
-
-using PutFunctionPtr = std::function<unsigned (const std::vector<std::string>&, std::string& put_data, std::string& response)>;
-//using PutFunctionPtrMSG = std::function<int (const std::vector<std::string>&, google::protobuf::Message* const receive_msg, google::protobuf::Message* const response_msg)>;
 
 class BoostHttpServer
 {
@@ -64,7 +62,7 @@ private:
     std::map<RestMethods, std::map<uri, std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>> > handler_default_;
 
 
-    void http_server(boost::asio::ip::tcp::acceptor& acceptor, boost::asio::ip::tcp::socket& socket);
+    void accept_connection(boost::asio::ip::tcp::acceptor& acceptor, boost::asio::ip::tcp::socket& socket);
     boost::beast::http::status handle_request(const boost::beast::http::verb &method, const std::string& path, std::string &put_data, std::string &result);
 };
 

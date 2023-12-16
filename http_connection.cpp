@@ -3,19 +3,19 @@
 namespace hp {
 namespace http {
 
-HTTPConnection::HTTPConnection(boost::asio::ip::tcp::socket socket, const HttpRequestHanlder &http_handler) :
+BoostHTTPConnection::BoostHTTPConnection(boost::asio::ip::tcp::socket socket, const HttpRequestHanlder &http_handler) :
     http_handler_(http_handler), socket_(std::move(socket)), deadline_{socket_.get_executor(), std::chrono::seconds(0)}
 {
 
 }
 
-void HTTPConnection::start()
+void BoostHTTPConnection::start()
 {
     read_request();
     check_deadline();
 }
 
-void HTTPConnection::read_request()
+void BoostHTTPConnection::read_request()
 {
     auto self = shared_from_this();
 
@@ -27,7 +27,7 @@ void HTTPConnection::read_request()
     });
 }
 
-void HTTPConnection::process_request()
+void BoostHTTPConnection::process_request()
 {
     response_.version(request_.version());
     response_.keep_alive(false);
@@ -46,11 +46,9 @@ void HTTPConnection::process_request()
     write_response();
 }
 
-void HTTPConnection::write_response()
+void BoostHTTPConnection::write_response()
 {
     auto self = shared_from_this();
-
-    //    response_.set(boost::beast::http::field::content_length, response_.body().size());
 
     boost::beast::http::async_write(socket_, response_, [self](boost::beast::error_code ec, std::size_t)
     {
@@ -59,7 +57,7 @@ void HTTPConnection::write_response()
     });
 }
 
-void HTTPConnection::check_deadline()
+void BoostHTTPConnection::check_deadline()
 {
     return;
     auto self = shared_from_this();
