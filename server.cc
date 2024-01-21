@@ -36,6 +36,13 @@ void BoostHttpServer::add_path(const Methods method, const std::string &uri, con
     handler_default_[method][uri] = std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>(path_node, func);
 }
 
+void BoostHttpServer::add_path(const Methods method, const std::string &uri, const ProtobufValidatorFuncPtr &validator, const ProtobufFunctionPtr &func)
+{
+    auto path_node = path_parser_->parse(uri);
+    handler_protobuf_default_[method][uri] = std::pair<std::shared_ptr<PathAddress>, ProtobufFunctionPtr>(path_node, func);
+    handler_protobuf_validator_default_[method][uri] = validator;
+}
+
 void BoostHttpServer::accept_connection(boost::asio::ip::tcp::acceptor &acceptor, boost::asio::ip::tcp::socket &socket)
 {
     ip_acceptor_.async_accept(socket, [&](boost::beast::error_code ec) {
@@ -49,22 +56,46 @@ void BoostHttpServer::accept_connection(boost::asio::ip::tcp::acceptor &acceptor
 
 boost::beast::http::status BoostHttpServer::handle_request(const boost::beast::http::verb& method, const std::string &path, std::string &put_data, std::string& result)
 {
-    auto parser = handler_default_.find(methods_list_[method]);
+    //    auto parser = handler_default_.find(methods_list_[method]);
+    //    result = "This uri doesn't support";
+    //    boost::beast::http::status ret = boost::beast::http::status::bad_request;
+    //    if (parser != handler_default_.end()) {
+    //        PathParser path_parser;
+    //        auto rest_node = path_parser.parse(path);
+    //        for (const auto &map_node : parser->second) {
+    //            std::vector<std::string> inputs;
+    //            bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
+    //            if (is_same) {
+    //                auto handler = map_node.second.second;
+    //                ret = static_cast<boost::beast::http::status>(handler(inputs, put_data, result));
+    //                break;
+    //            }
+    //        }
+
+    //    }
+    auto new_method = methods_list_[method];
+    auto proto_parser = handler_protobuf_default_.find(new_method);
     result = "This uri doesn't support";
     boost::beast::http::status ret = boost::beast::http::status::bad_request;
-    if (parser != handler_default_.end()) {
+    if (proto_parser != handler_protobuf_default_.end()) {
         PathParser path_parser;
         auto rest_node = path_parser.parse(path);
-        for (const auto &map_node : parser->second) {
+        for (const auto &map_node : proto_parser->second) {
             std::vector<std::string> inputs;
             bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
             if (is_same) {
-                auto handler = map_node.second.second;
-                ret = static_cast<boost::beast::http::status>(handler(inputs, put_data, result));
-                break;
+                auto validator = handler_protobuf_validator_default_[new_method][path];
+                google::protobuf::Message* msg;
+                if (validator(msg, put_data)) {
+                    auto handler = map_node.second.second;
+                    ret = static_cast<boost::beast::http::status>(handler(inputs, msg, result));
+                    break;
+                }
             }
         }
+
     }
+
     return ret;
 }
 
