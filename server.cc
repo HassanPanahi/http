@@ -5,7 +5,7 @@
 
 #include "http_connection.h"
 
-//int handle_request(const RestMethods method, const std::string& path, std::string &put_data, std::string &result);
+//int handle_request(const Methods method, const std::string& path, std::string &put_data, std::string &result);
 namespace hp {
 namespace http {
 
@@ -17,20 +17,20 @@ BoostHttpServer::BoostHttpServer(const std::string& ip_address, unsigned short p
     ip_acceptor_({ioc_, {boost::asio::ip::make_address(ip_address), port}}), tcp_socekt_{ioc_}, path_parser_(path_parser)
 {
     is_running_ = false;
-    methods_list_[boost::beast::http::verb::get]         = RestMethods::GET;
-    methods_list_[boost::beast::http::verb::put]         = RestMethods::PUT;
-    methods_list_[boost::beast::http::verb::delete_]     = RestMethods::DEL;
-    methods_list_[boost::beast::http::verb::head]        = RestMethods::HEAD;
-    methods_list_[boost::beast::http::verb::post]        = RestMethods::POST;
-    methods_list_[boost::beast::http::verb::trace]       = RestMethods::TRCE;
-    methods_list_[boost::beast::http::verb::patch]       = RestMethods::PATCH;
-    methods_list_[boost::beast::http::verb::merge]       = RestMethods::MERGE;
-    methods_list_[boost::beast::http::verb::options]     = RestMethods::OPTIONS;
-    methods_list_[boost::beast::http::verb::connect]     = RestMethods::CONNECT;
+    methods_list_[boost::beast::http::verb::get]         = Methods::GET;
+    methods_list_[boost::beast::http::verb::put]         = Methods::PUT;
+    methods_list_[boost::beast::http::verb::delete_]     = Methods::DEL;
+    methods_list_[boost::beast::http::verb::head]        = Methods::HEAD;
+    methods_list_[boost::beast::http::verb::post]        = Methods::POST;
+    methods_list_[boost::beast::http::verb::trace]       = Methods::TRCE;
+    methods_list_[boost::beast::http::verb::patch]       = Methods::PATCH;
+    methods_list_[boost::beast::http::verb::merge]       = Methods::MERGE;
+    methods_list_[boost::beast::http::verb::options]     = Methods::OPTIONS;
+    methods_list_[boost::beast::http::verb::connect]     = Methods::CONNECT;
     accept_connection(ip_acceptor_, tcp_socekt_);
 }
 
-void BoostHttpServer::add_path(const RestMethods method, const std::string &uri, const PutFunctionPtr &func)
+void BoostHttpServer::add_path(const Methods method, const std::string &uri, const PutFunctionPtr &func)
 {
     auto path_node = path_parser_->parse(uri);
     handler_default_[method][uri] = std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>(path_node, func);

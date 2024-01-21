@@ -12,7 +12,7 @@
 
 namespace rest {
 
-enum class RestMethods{
+enum class Methods{
     PUT,
     GET
 };
@@ -30,7 +30,7 @@ public:
     Server(std::shared_ptr<PathParser> pathparser, const std::string &url, unsigned short port);
     void add_get_path(const std::string &path, std::function<std::string (std::vector<std::string>)> func);
     void add_put_path(const std::string &path, std::function<std::string (std::vector<std::string>, std::string)> func);
-    void start(const std::vector<RestMethods> &methods);
+    void start(const std::vector<Methods> &methods);
     void stop();
     bool is_running() const;
     std::string get_url() const;

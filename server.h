@@ -18,7 +18,7 @@ namespace http {
 using uri = std::string;
 using PutFunctionPtr = std::function<unsigned (const std::vector<std::string>&, std::string& put_data, std::string& response)>;
 
-enum class RestMethods {
+enum class Methods {
     GET,
     PUT,
     DEL,
@@ -45,7 +45,7 @@ public:
     std::string get_url() const;
     unsigned short get_port() const;
 
-    void add_path(const RestMethods method, const std::string &uri, const PutFunctionPtr& func);
+    void add_path(const Methods method, const std::string &uri, const PutFunctionPtr& func);
 
 private:
 
@@ -58,8 +58,8 @@ private:
 
     std::shared_ptr<PathParser> path_parser_;
     std::vector<std::vector<std::string>> paths_;
-    std::map<boost::beast::http::verb, RestMethods> methods_list_;
-    std::map<RestMethods, std::map<uri, std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>> > handler_default_;
+    std::map<boost::beast::http::verb, Methods> methods_list_;
+    std::map<Methods, std::map<uri, std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>> > handler_default_;
 
 
     void accept_connection(boost::asio::ip::tcp::acceptor& acceptor, boost::asio::ip::tcp::socket& socket);
