@@ -17,8 +17,8 @@ namespace http {
 
 using uri = std::string;
 using PutFunctionPtr = std::function<unsigned (const std::vector<std::string>&, std::string& put_data, std::string& response)>;
-using ProtobufFunctionPtr = std::function<unsigned (const std::vector<std::string>&, google::protobuf::Message* input_msg, std::string& response)>;
-using ProtobufValidatorFuncPtr = std::function<bool (google::protobuf::Message* msg, const std::string& input)>;
+using ProtobufFunctionPtr = std::function<unsigned (const std::vector<std::string>&, std::shared_ptr<google::protobuf::Message>& input_msg, std::string& response)>;
+using ProtobufValidatorFuncPtr = std::function<bool (std::shared_ptr<google::protobuf::Message>& msg, const std::string& input)>;
 
 enum class Methods {
     GET,

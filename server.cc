@@ -85,7 +85,7 @@ boost::beast::http::status BoostHttpServer::handle_request(const boost::beast::h
             bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
             if (is_same) {
                 auto validator = handler_protobuf_validator_default_[new_method][path];
-                google::protobuf::Message* msg;
+                std::shared_ptr<google::protobuf::Message> msg;
                 if (validator(msg, put_data)) {
                     auto handler = map_node.second.second;
                     ret = static_cast<boost::beast::http::status>(handler(inputs, msg, result));

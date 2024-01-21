@@ -18,29 +18,39 @@ unsigned put_info(const std::vector<std::string>& inputs, std::string& putdata, 
     return 200;
 }
 
-
-unsigned handle_message(const std::vector<std::string>& inputs, google::protobuf::Message* msg, std::string& response)
+template <class Proto_Msg>
+static std::string message_to_json(Proto_Msg &proto_message)
 {
-    auto new_msg = dynamic_cast<hp::protos::Versions*>(msg);
+    std::string res = "";
+    google::protobuf::util::MessageToJsonString(*proto_message.get(), &res);
+    return res;
+}
+
+unsigned handle_message(const std::vector<std::string>& inputs, std::shared_ptr<google::protobuf::Message>& msg, std::string& response)
+{
+//    auto new_msg = dynamic_cast<hp::protos::Versions*>(msg);
+    std::cout << message_to_json(msg) << std::endl;
     response = "{ \"name\": \"hassan\" } \n";
     return 200;
 }
 
 //TODO(HP): use enum for this
-google::protobuf::Message* validator(const std::string_view& msg_name, const std::string& input)
+bool validator(const std::string_view& msg_name, std::shared_ptr<google::protobuf::Message>& msg, const std::string& input)
 {
-    hp::protos::Versions new_msg;
+    auto new_msg = std::make_shared<hp::protos::Versions>();
 
-    auto status = google::protobuf::util::JsonStringToMessage(input, &new_msg);
-    if (!status.ok()) {
-        auto error = "Unable to convert json string to " +  new_msg.GetTypeName();
+    auto status = google::protobuf::util::JsonStringToMessage(input, new_msg.get());
+    if (status.ok()) {
+        msg = std::dynamic_pointer_cast<hp::protos::Versions>(new_msg);
+    } else {
+        auto error = "Unable to convert json string to " +  new_msg->GetTypeName();
         const auto &st_error = status.ToString();
         if (!st_error.empty()) {
             error.append(st_error.data());
         }
         std::cout << "error: " << error  << std::endl;
     }
-    return dynamic_cast<google::protobuf::Message*>(&new_msg);
+    return true;
 }
 
 int main(int argc, char* argv[])
@@ -58,7 +68,7 @@ int main(int argc, char* argv[])
     server.add_path(hp::http::Methods::GET, "/info", std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     server.add_path(hp::http::Methods::PUT, "/info", std::bind(&put_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
-    server.add_path(hp::http::Methods::PUT, "/info", std::bind(&validator,"version", std::placeholders::_1, std::placeholders::_2), std::bind(&handle_message, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    server.add_path(hp::http::Methods::PUT, "/infos", std::bind(&validator,"version", std::placeholders::_1, std::placeholders::_2), std::bind(&handle_message, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     server.start();
 }
