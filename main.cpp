@@ -35,44 +35,16 @@ unsigned handle_message(const std::vector<std::string>& inputs, std::shared_ptr<
     return 200;
 }
 
-//TODO(HP): use enum for this
-std::shared_ptr<google::protobuf::Message> validator(const std::string_view& msg_name, const std::string& input)
-{
-    auto new_msg = std::make_shared<hp::protos::Versions>();
-
-    auto status = google::protobuf::util::JsonStringToMessage(input, new_msg.get());
-    if (!status.ok()) {
-        auto error = "Unable to convert json string to " +  new_msg->GetTypeName();
-        const auto &st_error = status.ToString();
-        if (!st_error.empty()) {
-            error.append(st_error.data());
-        }
-        std::cout << "error: " << error  << std::endl;
-    }
-    return new_msg;
-}
-
-
-
-
 int main(int argc, char* argv[])
 {
-    //    hp::protos::Versions version;
-    //    version.set_major(1);
-    //    version.set_minor(2);
-    //    version.set_patch(3);
-    //    std::vector<std::string> inputs;
-    //    std::string result;
-    //    handle_message(inputs, &version, result);
-
     hp::http::BoostHttpServer server("0.0.0.0", 8585);
+    auto msg_validator = std::make_shared<MessageValidator>();
+    server.set_msg_validator(msg_validator);
 
     //TODO(HP): /info always use / for begin of uri address... fix this!!!
     //    server.add_path(hp::http::Methods::GET, "/info", std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     //    server.add_path(hp::http::Methods::PUT, "/info", std::bind(&put_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    auto msg_validator = std::make_shared<MessageValidator>();
-    server.set_msg_validator(msg_validator);
-    server.add_path(hp::http::Methods::PUT, "/infos", 1, std::bind(&handle_message, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    server.add_path(hp::http::Methods::PUT, "/infos", MessagesID::Crosspoint, std::bind(&handle_message, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     server.start();
 }
