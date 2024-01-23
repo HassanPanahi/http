@@ -1,7 +1,7 @@
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef REST_BOOST_SERVER_H
+#define REST_BOOST_SERVER_H
 
-#include "path_parser.h"
+#include "path/path_parser.h"
 
 #include <map>
 #include <string>
@@ -15,50 +15,32 @@
 
 #include <google/protobuf/message.h>
 
-#include "messages_interface.h"
+#include "../../rest_common/messages_interface.h"
 
 namespace hp {
 namespace http {
 
-using uri = std::string;
-using PutFunctionPtr = std::function<unsigned (const std::vector<std::string>&, std::string& put_data, std::string& response)>;
-using ProtobufFunctionPtr = std::function<unsigned (const std::vector<std::string>&, std::shared_ptr<google::protobuf::Message>& input_msg, std::string& response)>;
 
-enum class Methods {
-    GET,
-    PUT,
-    DEL,
-    POST,
-    HEAD,
-    TRCE,
-    PATCH,
-    MERGE,
-    OPTIONS,
-    CONNECT
-};
-
-class BoostHttpServer
+class BoostRestServer : public RestServerInterface
 {
 public:
-    BoostHttpServer(const std::string& ip_address, unsigned short port);
-    BoostHttpServer(const std::string& ip_address, unsigned short port, const std::shared_ptr<PathParser>& path_parser);
-
-    void stop();
-    void start();
+    BoostRestServer(const std::string& ip_address, unsigned short port, const uint32_t threads = 16);
+    BoostRestServer(const std::string& ip_address, unsigned short port, const std::shared_ptr<PathParser>& path_parser, const uint32_t threads = 16);
 
     bool is_running() const;
-
     std::string get_url() const;
     unsigned short get_port() const;
-    void set_msg_validator(const std::shared_ptr<MessageValidatorInterface>& msg_validator);
-    void add_path(const Methods method, const std::string &uri, const PutFunctionPtr& func);
-    void add_path(const Methods method, const std::string &uri, const uint32_t protobuf_msg,  const ProtobufFunctionPtr& func);
+
+    void stop() override;
+    void start() override;
+    void set_msg_validator(const std::shared_ptr<MessageValidatorInterface>& msg_validator) override;
+    void add_path(const Methods method, const std::string &uri, const PutFunctionPtr& func) override;
+    void add_path(const Methods method, const std::string &uri, const uint32_t protobuf_msg,  const ProtobufFunctionPtr& func) override;
 
 private:
     bool is_running_;
     std::string main_url_;
-
-    boost::asio::io_context ioc_ {3};
+    boost::asio::io_context ioc_;
     boost::asio::ip::tcp::socket tcp_socekt_;
     boost::asio::ip::tcp::acceptor ip_acceptor_;
 

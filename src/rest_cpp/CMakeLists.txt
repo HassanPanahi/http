@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(boost_http C CXX)
+project(rest_api C CXX)
 set(MODULE_NAME ${PROJECT_NAME})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -lpthread")
 
@@ -9,7 +9,7 @@ set(SOURCES ${SOURCES} ${Srcs} PARENT_SCOPE)
 find_package(Boost REQUIRED COMPONENTS system thread regex filesystem)
 
 add_library(${MODULE_NAME} ${Srcs})
-target_link_libraries(${MODULE_NAME} PUBLIC ${Boost_LIBRARIES} crypto ssl)
+target_link_libraries(${MODULE_NAME} PUBLIC ${Boost_LIBRARIES} cpprest path_parser crypto ssl)
 
 include_directories(include)
 include_directories(include/rest)

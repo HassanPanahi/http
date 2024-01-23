@@ -1,4 +1,4 @@
-#include "http_connection.h"
+#include "rest_boost/http_connection.h"
 
 namespace hp {
 namespace http {

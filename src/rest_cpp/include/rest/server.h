@@ -4,25 +4,16 @@
 #include <cpprest/http_listener.h>
 #include <functional>
 #include <map>
-#include "path_parser.h"
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/asio.hpp>
+#include "path/path_parser.h"
 
-namespace rest {
-
-enum class Methods{
-    PUT,
-    GET
-};
-
+namespace hp {
+namespace http {
+`
 enum class ErrorTypes
 {
     OK,
     WRONG_PATH,
 };
-
 class Server
 {
 public:
@@ -30,7 +21,7 @@ public:
     Server(std::shared_ptr<PathParser> pathparser, const std::string &url, unsigned short port);
     void add_get_path(const std::string &path, std::function<std::string (std::vector<std::string>)> func);
     void add_put_path(const std::string &path, std::function<std::string (std::vector<std::string>, std::string)> func);
-    void start(const std::vector<Methods> &methods);
+    void start(const std::vector<RestMethods> &methods);
     void stop();
     bool is_running() const;
     std::string get_url() const;
@@ -44,11 +35,7 @@ private:
 
     std::map<std::shared_ptr<PathAddress>, std::function<std::string (std::vector<std::string>, std::string)>> put_methods_;
     std::map<std::shared_ptr<PathAddress>, std::function<std::string (std::vector<std::string>)>> get_methods_;
-
-    boost::asio::ip::tcp::socket socket_;
-    boost::beast::flat_buffer buffer_{8192};
-
-
+    web::http::experimental::listener::http_listener http_listener_;
     std::shared_ptr<PathParser> path_parser_;
     std::vector<std::vector<std::string>> paths_;
     bool is_running_;
@@ -58,6 +45,7 @@ private:
 
 };
 
-} //peripheral
+}
+}
 
 #endif // SERVER_H

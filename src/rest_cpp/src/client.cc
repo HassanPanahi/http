@@ -1,7 +1,8 @@
 #include "client.h"
 
 
-namespace rest {
+namespace hp {
+namespace http {
 
 Client::Client(const std::string &ip, const unsigned short port, const long time_out_ms)
     : Client(ip+ ":"+ std::to_string(port), time_out_ms)
@@ -84,4 +85,5 @@ const std::string &Client::get_main_url() const
     return main_url_;
 }
 
-} // namespace rest
+}
+}

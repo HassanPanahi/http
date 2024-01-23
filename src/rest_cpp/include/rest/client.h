@@ -9,7 +9,9 @@ using namespace utility;
 using namespace web::http::client;
 
 
-namespace rest {
+namespace hp {
+namespace http {
+
 const uint32_t time_out_ms_default_ = (30 * 1000);
 class Client
 {
@@ -32,4 +34,5 @@ private:
 };
 
 } // rest
+}
 #endif // CLIENT_H

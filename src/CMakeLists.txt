@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(rest_api C CXX)
 
-add_subdirectory(rest)
-add_subdirectory(boost)
+add_subdirectory(rest_path)
+#add_subdirectory(rest)
+add_subdirectory(rest_boost)

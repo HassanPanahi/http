@@ -3,7 +3,8 @@
 #include <iostream>
 #include <thread>
 
-namespace rest {
+namespace hp {
+namespace http {
 
 Server::Server(const std::string& ip_address, unsigned short port) : Server(std::make_shared<PathParser>(), ip_address, port)
 {
@@ -146,4 +147,5 @@ void Server::handle_put(web::http::http_request message)
     }
 }
 
-} // namespace rest
+}
+}
