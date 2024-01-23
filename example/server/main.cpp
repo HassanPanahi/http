@@ -2,16 +2,16 @@
 #include <google/protobuf/util/json_util.h>
 #include <google/protobuf/dynamic_message.h>
 
-unsigned get_info(const std::vector<std::string>& inputs, std::string& putdata, std::string& response)
+unsigned get_info(const std::vector<std::string>& inputs, std::string& request, std::string& response)
 {
     response = "{ \"name\": \"hassan\" } \n";
     return 200;
 }
 
 
-unsigned put_info(const std::vector<std::string>& inputs, std::string& putdata, std::string& response)
+unsigned put_info(const std::vector<std::string>& inputs, std::string& input_data, std::string& response)
 {
-    std::cout << "put_data: " << putdata << std::endl;
+    std::cout << "put_data: " << input_data << std::endl;
     response = "{ \"name\": \"hassan\" } \n";
     return 200;
 }

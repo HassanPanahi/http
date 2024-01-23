@@ -9,7 +9,8 @@
 namespace hp {
 namespace http {
 
-BoostRestServer::BoostRestServer(const std::string& ip_address, unsigned short port, const uint32_t threads) : BoostRestServer(ip_address, port, std::make_shared<PathParser>(), threads)
+BoostRestServer::BoostRestServer(const std::string& ip_address, unsigned short port, const uint32_t threads) :
+    BoostRestServer(ip_address, port, std::make_shared<PathParser>(), threads)
 {
 }
 
@@ -47,7 +48,8 @@ void BoostRestServer::accept_connection(boost::asio::ip::tcp::acceptor &acceptor
 {
     ip_acceptor_.async_accept(socket, [&](boost::beast::error_code ec) {
         if(!ec) {
-            auto http_connection = std::make_shared<BoostHTTPConnection>(std::move(socket), std::bind(&BoostRestServer::handle_request, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+            auto http_connection = std::make_shared<BoostHTTPConnection>(std::move(socket),
+                                                                         std::bind(&BoostRestServer::handle_request, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             http_connection->start();
         }
         accept_connection(acceptor, socket);
@@ -72,31 +74,29 @@ boost::beast::http::status BoostRestServer::handle_request(const boost::beast::h
             }
         }
     }
-//    auto new_method = methods_list_[method];
-//    auto proto_parser = handler_protobuf_default_.find(new_method);
-//    result = "This uri doesn't support";
-//    auto ret = boost::beast::http::status::bad_request;
-//    try {
 
-//        if (proto_parser != handler_protobuf_default_.end()) {
-//            PathParser path_parser;
-//            auto rest_node = path_parser.parse(path);
-//            for (const auto &map_node : proto_parser->second) {
-//                std::vector<std::string> inputs;
-//                bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
-//                if (is_same) {
-//                    auto msg_id = handler_msg_default_[new_method][path];
-//                    auto msg = msg_validator_->get_message(msg_id, put_data);
-//                    auto proto_ptr_func = map_node.second.second;
-//                    ret = static_cast<boost::beast::http::status>(proto_ptr_func(inputs, msg, result));
-//                    break;
-//                }
-//            }
-//        }
+    auto new_method = methods_list_[method];
+    auto proto_parser = handler_protobuf_default_.find(new_method);
+    try {
+        if (proto_parser != handler_protobuf_default_.end()) {
+            PathParser path_parser;
+            auto rest_node = path_parser.parse(path);
+            for (const auto &map_node : proto_parser->second) {
+                std::vector<std::string> inputs;
+                bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
+                if (is_same) {
+                    auto msg_id = handler_msg_default_[new_method][path];
+                    auto msg = msg_validator_->get_message(msg_id, put_data);
+                    auto proto_ptr_func = map_node.second.second;
+                    ret = static_cast<boost::beast::http::status>(proto_ptr_func(inputs, msg, result));
+                    break;
+                }
+            }
+        }
 
-//    }  catch (...) {
-
-//    }
+    }  catch (...) {
+       std::cout << "exception is boost rest" << std::endl;
+    }
 
     return ret;
 }
