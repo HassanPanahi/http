@@ -36,11 +36,11 @@ void BoostHttpServer::add_path(const Methods method, const std::string &uri, con
     handler_default_[method][uri] = std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>(path_node, func);
 }
 
-void BoostHttpServer::add_path(const Methods method, const std::string &uri, const ProtobufValidatorFuncPtr &validator, const ProtobufFunctionPtr &func)
+void BoostHttpServer::add_path(const Methods method, const std::string &uri, const uint32_t protobuf_msg, const ProtobufFunctionPtr &func)
 {
     auto path_node = path_parser_->parse(uri);
     handler_protobuf_default_[method][uri] = std::pair<std::shared_ptr<PathAddress>, ProtobufFunctionPtr>(path_node, func);
-    handler_protobuf_validator_default_[method][uri] = validator;
+    handler_msg_default_[method][uri] = protobuf_msg;
 }
 
 void BoostHttpServer::accept_connection(boost::asio::ip::tcp::acceptor &acceptor, boost::asio::ip::tcp::socket &socket)
@@ -71,7 +71,6 @@ boost::beast::http::status BoostHttpServer::handle_request(const boost::beast::h
     //                break;
     //            }
     //        }
-
     //    }
     auto new_method = methods_list_[method];
     auto proto_parser = handler_protobuf_default_.find(new_method);
@@ -84,13 +83,13 @@ boost::beast::http::status BoostHttpServer::handle_request(const boost::beast::h
             std::vector<std::string> inputs;
             bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
             if (is_same) {
-                auto validator = handler_protobuf_validator_default_[new_method][path];
-                std::shared_ptr<google::protobuf::Message> msg;
-                if (validator(msg, put_data)) {
-                    auto handler = map_node.second.second;
-                    ret = static_cast<boost::beast::http::status>(handler(inputs, msg, result));
-                    break;
-                }
+                auto msg_id = handler_msg_default_[new_method][path];
+                auto msg = msg_validator_->get_message(msg_id, put_data);
+//                if (validator(msg, put_data)) {
+//                    auto handler = map_node.second.second;
+//                    ret = static_cast<boost::beast::http::status>(handler(inputs, msg, result));
+//                    break;
+//                }
             }
         }
 
@@ -127,6 +126,11 @@ std::string BoostHttpServer::get_url() const
 unsigned short BoostHttpServer::get_port() const
 {
     return ip_acceptor_.local_endpoint().port();
+}
+
+void BoostHttpServer::set_msg_validator(const std::shared_ptr<MessageValidatorInterface> &msg_validator)
+{
+    msg_validator_ = msg_validator;
 }
 
 } // namespace
