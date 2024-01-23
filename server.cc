@@ -85,11 +85,11 @@ boost::beast::http::status BoostHttpServer::handle_request(const boost::beast::h
             if (is_same) {
                 auto msg_id = handler_msg_default_[new_method][path];
                 auto msg = msg_validator_->get_message(msg_id, put_data);
-//                if (validator(msg, put_data)) {
-//                    auto handler = map_node.second.second;
-//                    ret = static_cast<boost::beast::http::status>(handler(inputs, msg, result));
-//                    break;
-//                }
+                if (msg != nullptr) {
+                    auto handler = map_node.second.second;
+                    ret = static_cast<boost::beast::http::status>(handler(inputs, msg, result));
+                    break;
+                }
             }
         }
 

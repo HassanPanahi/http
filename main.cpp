@@ -29,8 +29,8 @@ static std::string message_to_json(Proto_Msg &proto_message)
 
 unsigned handle_message(const std::vector<std::string>& inputs, std::shared_ptr<google::protobuf::Message>& msg, std::string& response)
 {
-    //    auto new_msg = dynamic_cast<hp::protos::Versions*>(msg);
-    std::cout << message_to_json(msg) << std::endl;
+    auto new_msg = std::dynamic_pointer_cast<hp::protos::Versions>(msg);
+    std::cout << message_to_json(new_msg) << std::endl;
     response = "{ \"name\": \"hassan\" } \n";
     return 200;
 }
@@ -68,10 +68,10 @@ int main(int argc, char* argv[])
     hp::http::BoostHttpServer server("0.0.0.0", 8585);
 
     //TODO(HP): /info always use / for begin of uri address... fix this!!!
-//    server.add_path(hp::http::Methods::GET, "/info", std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-//    server.add_path(hp::http::Methods::PUT, "/info", std::bind(&put_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    //    server.add_path(hp::http::Methods::GET, "/info", std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    //    server.add_path(hp::http::Methods::PUT, "/info", std::bind(&put_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     auto msg_validator = std::make_shared<MessageValidator>();
-//    server.set_msg_validator(msg_validator);
+    server.set_msg_validator(msg_validator);
     server.add_path(hp::http::Methods::PUT, "/infos", 1, std::bind(&handle_message, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     server.start();
