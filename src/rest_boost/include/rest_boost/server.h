@@ -36,13 +36,18 @@ public:
     void set_msg_validator(const std::shared_ptr<MessageValidatorInterface>& msg_validator) override;
     void add_path(const Methods method, const std::string &uri, const PutFunctionPtr& func) override;
     void add_path(const Methods method, const std::string &uri, const uint32_t protobuf_msg,  const ProtobufFunctionPtr& func) override;
-
+    ~BoostRestServer();
 private:
     bool is_running_;
+    const uint32_t threads_count_;
     std::string main_url_;
     boost::asio::io_context ioc_;
     boost::asio::ip::tcp::socket tcp_socekt_;
     boost::asio::ip::tcp::acceptor ip_acceptor_;
+    std::shared_ptr<boost::asio::io_context::work> work_;
+    void worker_thread(boost::asio::io_context &ioc);
+    std::thread run_threads_;
+    std::vector<std::thread> v;
 
     std::shared_ptr<PathParser> path_parser_;
     std::shared_ptr<MessageValidatorInterface> msg_validator_;

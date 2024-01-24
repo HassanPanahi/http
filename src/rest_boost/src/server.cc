@@ -15,7 +15,7 @@ BoostRestServer::BoostRestServer(const std::string& ip_address, unsigned short p
 }
 
 BoostRestServer::BoostRestServer(const std::string& ip_address, unsigned short port, const std::shared_ptr<PathParser>& path_parser, const uint32_t threads) :
-    ip_acceptor_({ioc_, {boost::asio::ip::make_address(ip_address), port}}), tcp_socekt_{ioc_}, path_parser_(path_parser), ioc_(threads)
+    ioc_(threads), ip_acceptor_({ioc_, {boost::asio::ip::make_address(ip_address), port}}), tcp_socekt_{ioc_}, path_parser_(path_parser), threads_count_(threads)
 {
     is_running_ = false;
     methods_list_[boost::beast::http::verb::get]         = Methods::GET;
@@ -42,6 +42,11 @@ void BoostRestServer::add_path(const Methods method, const std::string &uri, con
     auto path_node = path_parser_->parse(uri);
     handler_protobuf_default_[method][uri] = std::pair<std::shared_ptr<PathAddress>, ProtobufFunctionPtr>(path_node, func);
     handler_msg_default_[method][uri] = protobuf_msg;
+}
+
+BoostRestServer::~BoostRestServer()
+{
+
 }
 
 void BoostRestServer::accept_connection(boost::asio::ip::tcp::acceptor &acceptor, boost::asio::ip::tcp::socket &socket)
@@ -103,13 +108,11 @@ boost::beast::http::status BoostRestServer::handle_request(const boost::beast::h
 
 void BoostRestServer::start()
 {
-    std::vector<std::thread> v;
-    v.reserve(3);
-    for(auto i = 0; i < 3; i++)
+    v.reserve(threads_count_);
+    for(auto i = 0; i < threads_count_; i++)
         v.emplace_back([this]{ ioc_.run(); } );
     std::cout << "Http server listen to " << get_port() << " port" << std::endl;
     is_running_ = true;
-    ioc_.run();
 }
 
 void BoostRestServer::stop()
