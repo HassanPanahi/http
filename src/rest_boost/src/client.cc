@@ -1,4 +1,5 @@
 #include "rest_boost/client.h"
+#include <boost/lexical_cast.hpp>
 
 namespace hp {
 namespace http {
@@ -17,55 +18,45 @@ BoostHttpClient::BoostHttpClient(const std::string &ip, const unsigned short por
     methods_list_[Methods::OPTIONS]  = boost::beast::http::verb::options;
     methods_list_[Methods::CONNECT]  = boost::beast::http::verb::connect;
 }
-namespace beast = boost::beast;     // from <boost/beast.hpp>
-namespace http = beast::http;       // from <boost/beast/http.hpp>
-namespace net = boost::asio;        // from <boost/asio.hpp>
-using tcp = net::ip::tcp;           // from <boost/asio/ip/tcp.hpp>
+
 unsigned int BoostHttpClient::send_request(const Methods method, const std::string &url, const std::string &params, std::string &result)
 {
-    net::io_context ioc;
+    auto ret = boost::beast::http::status::bad_request;
+    try {
 
-    // These objects perform our I/O
-    tcp::resolver resolver(ioc);
-    beast::tcp_stream stream(ioc);
+    auto const host = ip_;
+    auto const port = std::to_string(port_);
+    version_ = 11;
 
-    // Look up the domain name
-    auto const results = resolver.resolve("0.0.0.0", "8585");
+    boost::asio::io_context ioc;
+    boost::asio::ip::tcp::resolver resolver(ioc);
+    boost::beast::tcp_stream stream(ioc);
 
-    // Make the connection on the IP address we get from a lookup
+    auto const results = resolver.resolve(host, port);
     stream.connect(results);
 
-    // Set up an HTTP GET request message
-    http::request<http::string_body> req{http::verb::get, "/info", 1};
-    req.set(http::field::host, "0.0.0.0");
-    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+    boost::beast::http::request<boost::beast::http::string_body> req(boost::beast::http::verb::get, url, version_);
+    req.set(boost::beast::http::field::host, host);
+    req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+    req.body() = params;
+    req.prepare_payload();
+    boost::beast::http::write(stream, req);
 
-    // Send the HTTP request to the remote host
-    http::write(stream, req);
+    boost::beast::flat_buffer buffer;
+    boost::beast::http::response<boost::beast::http::dynamic_body> res;
+    boost::beast::http::read(stream, buffer, res);
 
-    // This buffer is used for reading and must be persisted
-    beast::flat_buffer buffer;
+    result = boost::beast::buffers_to_string(res.body().data());
+    boost::beast::error_code ec;
+    stream.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+    if(ec && ec != boost::beast::errc::not_connected)
+        throw boost::beast::system_error{ec};
+    ret = res.result();
+    } catch(std::exception &e) {
+        std::cout << "std::error: " << e.what() << std::endl;
 
-    // Declare a container to hold the response
-    http::response<http::dynamic_body> res;
-
-    // Receive the HTTP response
-    http::read(stream, buffer, res);
-
-    // Write the message to standard out
-    std::cout << res << std::endl;
-
-    // Gracefully close the socket
-    beast::error_code ec;
-    stream.socket().shutdown(tcp::socket::shutdown_both, ec);
-
-    // not_connected happens sometimes
-    // so don't bother reporting it.
-    //
-    if(ec && ec != beast::errc::not_connected)
-        throw beast::system_error{ec};
-    return 200;
-    // If we get here then the connection is closed gracefully
+    }
+    return static_cast<unsigned int>(ret);
 }
 
 } //namespace
