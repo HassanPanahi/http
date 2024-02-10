@@ -8,6 +8,8 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <boost/beast/core/detail/bind_handler.hpp>
+#include <binders.h>
 
 namespace hp {
 namespace http {
@@ -38,44 +40,71 @@ unsigned int BoostHttpClient::send_request(const Methods method, const std::stri
         req_.target(url);
         req_.set(boost::beast::http::field::host, ip_);
         req_.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-//        resolver_.async_resolve(ip_, port_, beast::bind_front_handler(&BoostHttpClient::on_resolve, shared_from_this()));
-//        boost::asio::ip::tcp::resolver resolver(ioc);
-//        //        ioc.run_one_until(std::chrono::milliseconds(time_out_ms));
-//        boost::beast::tcp_stream stream(ioc);
-//        stream.expires_after(std::chrono::milliseconds(time_out_ms));
-
-//        auto const results = resolver.resolve(host, port);
-        //        stream.connect(results);
-        //        stream.async_connect(result, boost::beast::bind_front_handler(&BoostHttpClient::connect_feedback, this, std::placeholders::_1, std::placeholders::_2));
-        //        boost::beast::http::request<boost::beast::http::string_body> req(boost_method, url, version_);
-        //        req.set(boost::beast::http::field::host, host);
-        //        req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-        //        req.body() = params;
-        //        req.prepare_payload();
-        //        boost::beast::http::write(stream, req);
-        //        std::cout << 1 << std::endl;
-        //        boost::beast::http::read(stream, buffer_, res_);
-        //std::cout << 2 << std::endl;
-        //        result = boost::beast::buffers_to_string(res_.body().data());
-        //        boost::beast::error_code ec;
-        //        stream.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-        //        if(ec && ec != boost::beast::errc::not_connected)
-        //            throw boost::beast::system_error{ec};
-        //        ret = res_.result();
+        auto function_ptr = std::bind(&BoostHttpClient::on_resolve, this, result, time_out_ms, std::placeholders::_1, std::placeholders::_2);
+        resolver_.async_resolve(ip_.c_str(), std::to_string(port_).c_str(), function_ptr);
     } catch(std::exception &e) {
         std::cout << "std::error: " << e.what() << std::endl;
     }
     return static_cast<unsigned int>(ret);
 }
 
-void BoostHttpClient::connect_feedback(const boost::beast::error_code& ec, const boost::asio::ip::tcp::endpoint& ep)
+void BoostHttpClient::on_read(std::string& result, boost::beast::error_code &ec, const std::size_t bytes_transferred)
 {
+    boost::ignore_unused(bytes_transferred);
 
+//    if(ec)
+//        return fail(ec, "read");
+
+    // Write the message to standard out
+    std::cout << res_ << std::endl;
+//    result = boost::beast::buffers_to_string(res_.body().data());
+    // Gracefully close the socket
+    stream_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+
+    // not_connected happens sometimes so don't bother reporting it.
+    if(ec && ec != boost::beast::errc::not_connected) {
+//        return fail(ec, "shutdown");
+
+    }
 }
 
-void BoostHttpClient::on_resolve(boost::beast::error_code ec, boost::asio::ip::basic_resolver::results_type results)
+void BoostHttpClient::on_write(std::string& result, const boost::beast::error_code& ec, const std::size_t bytes_transferred)
 {
+    boost::ignore_unused(bytes_transferred);
 
+//    if(ec)
+//        return fail(ec, "write");
+
+    // Receive the HTTP response
+    auto funct = std::bind(&BoostHttpClient::on_read, shared_from_this(), result, std::placeholders::_1, std::placeholders::_2);
+    boost::beast::http::async_read(stream_, buffer_, res_, funct);
+}
+
+void BoostHttpClient::connect_feedback(std::string& result, const boost::beast::error_code& ec, const boost::asio::ip::tcp::endpoint& ep)
+{
+    if(ec) {
+//        return fail(ec, "connect");
+
+    } else {
+
+//        stream_.expires_after(std::chrono::seconds(30));
+
+       boost::beast::http::async_write(stream_, req_, std::bind(&BoostHttpClient::on_write, shared_from_this(), result, std::placeholders::_1, std::placeholders::_2));
+    }
+
+    // Set a timeout on the operation
+}
+
+void BoostHttpClient::on_resolve(std::string &result, const long time_out_ms, const boost::beast::error_code &ec, const boost::asio::ip::tcp::resolver::results_type &results)
+{
+    if(ec) {
+
+    } else {
+        stream_.expires_after(std::chrono::seconds(time_out_ms));
+        stream_.async_connect(results, std::bind(&BoostHttpClient::connect_feedback, shared_from_this(), result, std::placeholders::_1, std::placeholders::_2));
+    }
+
+    // Make the connection on the IP address we get from a lookup
 }
 
 } //namespace

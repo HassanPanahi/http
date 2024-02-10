@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
     hp::http::BoostHttpClient client("0.0.0.0", 8585);
     std::string input_data =  "{ \"panahi\" : 1}";
     std::string result;
-    auto ret = client.send_request(hp::http::Methods::GET, "/info", input_data, result, 5);
+    auto ret = client.send_request(hp::http::Methods::GET, "/info", input_data, result, 5000);
     std::cout << "result: " << result << std::endl;
 
     while(1)

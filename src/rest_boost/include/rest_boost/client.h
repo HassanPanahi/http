@@ -13,10 +13,6 @@
 #include <iostream>
 #include <memory>
 #include <string>
-namespace beast = boost::beast;         // from <boost/beast.hpp>
-namespace http = beast::http;           // from <boost/beast/http.hpp>
-namespace net = boost::asio;            // from <boost/asio.hpp>
-using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 namespace hp {
 namespace http {
@@ -30,15 +26,16 @@ public:
 private:
     boost::asio::io_context ioc;
 
-     tcp::resolver resolver_;
-     beast::tcp_stream stream_;
-     beast::flat_buffer buffer_; // (Must persist between reads)
-     boost::beast::http::request<boost::beast::http::empty_body> req_;
-//     http::response<http::string_body> res_;
+    boost::asio::ip::tcp::resolver resolver_;
+    boost::beast::tcp_stream stream_;
+    boost::beast::flat_buffer buffer_; // (Must persist between reads)
+    boost::beast::http::request<boost::beast::http::empty_body> req_;
+        boost::beast::http::response<boost::beast::http::string_body> res_;
 
-
-    void on_resolve(boost::beast::error_code ec, boost::asio::ip::basic_resolver::results_type results);
-    void connect_feedback(const boost::beast::error_code& ec, const boost::asio::ip::tcp::endpoint& ep);
+    void on_read(std::string& result, boost::beast::error_code &ec, const std::size_t bytes_transferred);
+    void on_write(std::string& result, const boost::beast::error_code& ec, const std::size_t bytes_transferred);
+    void on_resolve(std::string &result, const long time_out_ms, const boost::beast::error_code &ec, const boost::asio::ip::tcp::resolver::results_type &results);
+    void connect_feedback(std::string& result, const boost::beast::error_code& ec, const boost::asio::ip::tcp::endpoint& ep);
     int version_;
 
     const std::string ip_;
