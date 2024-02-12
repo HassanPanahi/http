@@ -31,7 +31,7 @@ private:
     boost::beast::http::request<boost::beast::http::empty_body> req_;
     boost::beast::http::response<boost::beast::http::string_body> res_;
 
-    void on_read(boost::system::error_code &ec, const std::size_t bytes_transferred);
+    void on_read(boost::beast::error_code &ec, const std::size_t bytes_transferred);
     void on_write(const boost::beast::error_code& ec, const std::size_t bytes_transferred);
     void on_resolve(const boost::beast::error_code &ec, const boost::asio::ip::tcp::resolver::results_type &results);
     void connect_feedback(const boost::beast::error_code& ec, const boost::asio::ip::tcp::endpoint& ep);

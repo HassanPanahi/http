@@ -28,7 +28,6 @@ BoostRestServer::BoostRestServer(const std::string& ip_address, unsigned short p
     methods_list_[boost::beast::http::verb::merge]       = Methods::MERGE;
     methods_list_[boost::beast::http::verb::options]     = Methods::OPTIONS;
     methods_list_[boost::beast::http::verb::connect]     = Methods::CONNECT;
-    accept_connection(ip_acceptor_, tcp_socekt_);
 }
 
 void BoostRestServer::add_path(const Methods method, const std::string &uri, const PutFunctionPtr &func)
@@ -111,6 +110,7 @@ void BoostRestServer::start()
     v.reserve(threads_count_);
     for(auto i = 0; i < threads_count_; i++)
         v.emplace_back([this]{ ioc_.run(); } );
+    accept_connection(ip_acceptor_, tcp_socekt_);
     std::cout << "Http server listen to " << get_port() << " port" << std::endl;
     is_running_ = true;
 }

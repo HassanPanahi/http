@@ -40,6 +40,8 @@ unsigned int BoostHttpClient::send_request(const Methods method, const std::stri
         req_.target(url);
         req_.set(boost::beast::http::field::host, "0.0.0.0");
         req_.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+        stream_.expires_after(std::chrono::seconds(15));
+
         resolver_.async_resolve("0.0.0.0", "8585", boost::beast::bind_front_handler(&BoostHttpClient::on_resolve, this));
         ioc_.run();
 
@@ -49,13 +51,14 @@ unsigned int BoostHttpClient::send_request(const Methods method, const std::stri
     return static_cast<unsigned int>(ret);
 }
 
-void BoostHttpClient::on_read(boost::system::error_code &ec, const std::size_t bytes_transferred)
+void BoostHttpClient::on_read(boost::beast::error_code &ec, const std::size_t bytes_transferred)
 {
     boost::ignore_unused(bytes_transferred);
 
-//    if(ec)
-//        return fail(ec, "read");
-
+    if(ec) {
+        std::cout << "read problem: " << ec.message() << std::endl;
+        return;
+    }
     // Write the message to standard out
     std::cout << res_ << std::endl;
 //    result = boost::beast::buffers_to_string(res_.body().data());
@@ -82,11 +85,12 @@ void BoostHttpClient::on_write(const boost::beast::error_code& ec, const std::si
 void BoostHttpClient::connect_feedback(const boost::beast::error_code& ec, const boost::asio::ip::tcp::endpoint& ep)
 {
     if(ec) {
-        std::cout << "connect prblem" << std::endl;
+        std::cout << "connect prblem:  " << ec.message() <<  std::endl;
 
     } else {
+        std::cout << "connect" << std::endl;
 
-//        stream_.expires_after(std::chrono::seconds(30));
+        stream_.expires_after(std::chrono::seconds(2));
 
        boost::beast::http::async_write(stream_, req_, boost::beast::bind_front_handler(&BoostHttpClient::on_write, this));
     }
@@ -97,10 +101,11 @@ void BoostHttpClient::connect_feedback(const boost::beast::error_code& ec, const
 void BoostHttpClient::on_resolve(const boost::beast::error_code &ec, const boost::asio::ip::tcp::resolver::results_type &results)
 {
     if(ec) {
-
+        std::cout << "resolve error" << std::endl;
     } else {
         stream_.expires_after(std::chrono::seconds(5));
         stream_.async_connect(results, boost::beast::bind_front_handler(&BoostHttpClient::connect_feedback, this));
+//        stream_.expires_never();
     }
 
     // Make the connection on the IP address we get from a lookup
