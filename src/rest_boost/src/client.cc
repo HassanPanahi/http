@@ -15,7 +15,7 @@ namespace hp {
 namespace http {
 
 BoostHttpClient::BoostHttpClient(const std::string &ip, const unsigned short port) :
-    ip_(ip), port_(port), resolver_{ioc}, stream_{ioc}
+    ip_(ip), port_(port), resolver_(boost::asio::make_strand(ioc_)), stream_(boost::asio::make_strand(ioc_))
 {
     version_ = 11;
     req_.version(version_);
@@ -38,17 +38,18 @@ unsigned int BoostHttpClient::send_request(const Methods method, const std::stri
         auto boost_method = methods_list_[method];
         req_.method(boost_method);
         req_.target(url);
-        req_.set(boost::beast::http::field::host, ip_);
+        req_.set(boost::beast::http::field::host, "0.0.0.0");
         req_.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-        auto function_ptr = std::bind(&BoostHttpClient::on_resolve, this, result, time_out_ms, std::placeholders::_1, std::placeholders::_2);
-        resolver_.async_resolve(ip_.c_str(), std::to_string(port_).c_str(), function_ptr);
+        resolver_.async_resolve("0.0.0.0", "8585", boost::beast::bind_front_handler(&BoostHttpClient::on_resolve, this));
+        ioc_.run();
+
     } catch(std::exception &e) {
         std::cout << "std::error: " << e.what() << std::endl;
     }
     return static_cast<unsigned int>(ret);
 }
 
-void BoostHttpClient::on_read(std::string& result, boost::beast::error_code &ec, const std::size_t bytes_transferred)
+void BoostHttpClient::on_read(boost::system::error_code &ec, const std::size_t bytes_transferred)
 {
     boost::ignore_unused(bytes_transferred);
 
@@ -68,40 +69,38 @@ void BoostHttpClient::on_read(std::string& result, boost::beast::error_code &ec,
     }
 }
 
-void BoostHttpClient::on_write(std::string& result, const boost::beast::error_code& ec, const std::size_t bytes_transferred)
+void BoostHttpClient::on_write(const boost::beast::error_code& ec, const std::size_t bytes_transferred)
 {
     boost::ignore_unused(bytes_transferred);
 
 //    if(ec)
 //        return fail(ec, "write");
 
-    // Receive the HTTP response
-    auto funct = std::bind(&BoostHttpClient::on_read, shared_from_this(), result, std::placeholders::_1, std::placeholders::_2);
-    boost::beast::http::async_read(stream_, buffer_, res_, funct);
+    boost::beast::http::async_read(stream_, buffer_, res_, boost::beast::bind_front_handler(&BoostHttpClient::on_read, this));
 }
 
-void BoostHttpClient::connect_feedback(std::string& result, const boost::beast::error_code& ec, const boost::asio::ip::tcp::endpoint& ep)
+void BoostHttpClient::connect_feedback(const boost::beast::error_code& ec, const boost::asio::ip::tcp::endpoint& ep)
 {
     if(ec) {
-//        return fail(ec, "connect");
+        std::cout << "connect prblem" << std::endl;
 
     } else {
 
 //        stream_.expires_after(std::chrono::seconds(30));
 
-       boost::beast::http::async_write(stream_, req_, std::bind(&BoostHttpClient::on_write, shared_from_this(), result, std::placeholders::_1, std::placeholders::_2));
+       boost::beast::http::async_write(stream_, req_, boost::beast::bind_front_handler(&BoostHttpClient::on_write, this));
     }
 
     // Set a timeout on the operation
 }
 
-void BoostHttpClient::on_resolve(std::string &result, const long time_out_ms, const boost::beast::error_code &ec, const boost::asio::ip::tcp::resolver::results_type &results)
+void BoostHttpClient::on_resolve(const boost::beast::error_code &ec, const boost::asio::ip::tcp::resolver::results_type &results)
 {
     if(ec) {
 
     } else {
-        stream_.expires_after(std::chrono::seconds(time_out_ms));
-        stream_.async_connect(results, std::bind(&BoostHttpClient::connect_feedback, shared_from_this(), result, std::placeholders::_1, std::placeholders::_2));
+        stream_.expires_after(std::chrono::seconds(5));
+        stream_.async_connect(results, boost::beast::bind_front_handler(&BoostHttpClient::connect_feedback, this));
     }
 
     // Make the connection on the IP address we get from a lookup
