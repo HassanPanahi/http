@@ -101,10 +101,10 @@ using tcp = net::ip::tcp;           // from <boost/asio/ip/tcp.hpp>
 int main(int argc, char* argv[])
 {
 
-//    hp::http::BoostRestServer server("0.0.0.0", 8585);
-//    server.add_path(hp::http::Methods::GET, "/info", std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-//    server.add_path(hp::http::Methods::PUT, "/info", std::bind(&put_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-//    server.start();
+    hp::http::BoostRestServer server("0.0.0.0", 8585);
+    server.add_path(hp::http::Methods::GET, "/info", std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    server.add_path(hp::http::Methods::PUT, "/info", std::bind(&put_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    server.start();
 
     hp::http::BoostHttpClient client("0.0.0.0", 8585);
     std::string input_data =  "{ \"panahi\" : 1}";

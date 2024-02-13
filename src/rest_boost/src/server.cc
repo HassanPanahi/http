@@ -107,10 +107,10 @@ boost::beast::http::status BoostRestServer::handle_request(const boost::beast::h
 
 void BoostRestServer::start()
 {
+    accept_connection(ip_acceptor_, tcp_socekt_);
     v.reserve(threads_count_);
     for(auto i = 0; i < threads_count_; i++)
         v.emplace_back([this]{ ioc_.run(); } );
-    accept_connection(ip_acceptor_, tcp_socekt_);
     std::cout << "Http server listen to " << get_port() << " port" << std::endl;
     is_running_ = true;
 }
