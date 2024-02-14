@@ -21,10 +21,10 @@ class BoostHttpClient : public std::enable_shared_from_this<BoostHttpClient>
 {
 public:
     explicit BoostHttpClient(const std::string& ip, const unsigned short port);
-    unsigned int send_request(const Methods method, const std::string& url, const std::string& params, std::string& result, const long int time_out_ms = 0);
+    unsigned int send_request(const Methods method, const std::string& url, const std::string& request, std::string& response, const long int time_out_ms = 0);
 
 private:
-    int version_;
+    int http_version_;
     const std::string ip_;
     const unsigned short port_;
     boost::asio::io_context ioc_sync_;

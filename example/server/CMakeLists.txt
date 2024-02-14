@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(boost_server)
+project(boost_server_client)
 set(CMAKE_BUILD_TYPE Debug)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})

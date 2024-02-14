@@ -19,7 +19,7 @@ namespace http {
 BoostHttpClient::BoostHttpClient(const std::string &ip, const unsigned short port) :
     ip_(ip), port_(port), stream_sync_(ioc_sync_), resolver_sync_(ioc_sync_)
 {
-    version_ = 11;
+    http_version_ = 11;
     methods_list_[Methods::GET]      = boost::beast::http::verb::get;
     methods_list_[Methods::PUT]      = boost::beast::http::verb::put;
     methods_list_[Methods::DEL]      = boost::beast::http::verb::delete_;
@@ -42,7 +42,7 @@ void on_timeout(boost::beast::tcp_stream& stream, bool& expired,  const boost::s
     }
 }
 
-unsigned int BoostHttpClient::send_request(const Methods method, const std::string &url, const std::string &params, std::string &result, const long time_out_ms)
+unsigned int BoostHttpClient::send_request(const Methods method, const std::string &url, const std::string &request, std::string &response, const long time_out_ms)
 {
     boost::asio::deadline_timer timer_(ioc_deadtime_sync_);
     auto const results = resolver_sync_.resolve(ip_, std::to_string(port_));
@@ -53,6 +53,7 @@ unsigned int BoostHttpClient::send_request(const Methods method, const std::stri
         ioc_thread = std::thread( [&]() {ioc_deadtime_sync_.run();} );
     }
     boost::beast::error_code ec;
+    auto ret = boost::beast::http::status::request_timeout;
     try {
         timer_.async_wait(std::bind(on_timeout, std::ref(stream_sync_), std::ref(expired_timeout), std::placeholders::_1));
 
@@ -67,23 +68,35 @@ unsigned int BoostHttpClient::send_request(const Methods method, const std::stri
                 }
             }
         }
-
-        boost::beast::http::request<boost::beast::http::string_body> req{boost::beast::http::verb::get, url, 11};
+        auto boost_method = methods_list_[method];
+        boost::beast::http::request<boost::beast::http::string_body> req{boost_method, url, http_version_};
+        req.body() = request;
+        req.prepare_payload();
         boost::beast::http::write(stream_sync_, req, ec);
-        boost::beast::flat_buffer buffer;
-        boost::beast::http::response<boost::beast::http::dynamic_body> res;
+        if (ec) {
+            ret = boost::beast::http::status::request_timeout;
+        } else {
+            boost::beast::flat_buffer buffer;
+            boost::beast::http::response<boost::beast::http::dynamic_body> res;
 
-        boost::beast::http::read(stream_sync_, buffer, res, ec);
-        ioc_deadtime_sync_.stop();
+            boost::beast::http::read(stream_sync_, buffer, res, ec);
+            if (ec) {
+                ret = boost::beast::http::status::request_timeout;
+            } else {
 
-        result = boost::beast::buffers_to_string(res.body().data());
-        stream_sync_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+                ioc_deadtime_sync_.stop();
+                response = boost::beast::buffers_to_string(res.body().data());
+                stream_sync_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+                ret = boost::beast::http::status::ok;
+            }
+        }
     } catch (std::exception &ece) {
         std::cout << "exception: " << ece.what() << " boost: " << ec.message() << std::endl;
     }
-    ioc_thread.join();
+    if (ioc_thread.joinable())
+        ioc_thread.join();
 
-    return ec.value();
+    return static_cast<unsigned int>(ret);
 }
 
 } //namespace
