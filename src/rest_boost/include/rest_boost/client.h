@@ -21,32 +21,17 @@ class BoostHttpClient : public std::enable_shared_from_this<BoostHttpClient>
 {
 public:
     explicit BoostHttpClient(const std::string& ip, const unsigned short port);
-    unsigned int send_async_request(const Methods method, const std::string& url, const std::string& params, std::string& result, const long int time_out_ms = 0);
     unsigned int send_request(const Methods method, const std::string& url, const std::string& params, std::string& result, const long int time_out_ms = 0);
 
 private:
-    boost::asio::io_context ioc_;
-    boost::asio::ip::tcp::resolver resolver_;
-    boost::beast::tcp_stream stream_;
-    boost::beast::flat_buffer buffer_; // (Must persist between reads)
-    boost::beast::http::request<boost::beast::http::empty_body> req_;
-    boost::beast::http::response<boost::beast::http::string_body> res_;
-
-    void on_read(boost::beast::error_code &ec, const std::size_t bytes_transferred);
-    void on_write(const boost::beast::error_code& ec, const std::size_t bytes_transferred);
-    void on_resolve(const boost::beast::error_code &ec, const boost::asio::ip::tcp::resolver::results_type &results);
-    void connect_feedback(const boost::beast::error_code& ec, const boost::asio::ip::tcp::endpoint& ep);
     int version_;
-
     const std::string ip_;
     const unsigned short port_;
-
+    boost::asio::io_context ioc_sync_;
+    boost::beast::tcp_stream stream_sync_;
+    boost::asio::io_context ioc_deadtime_sync_;
+    boost::asio::ip::tcp::resolver resolver_sync_;
     std::map<Methods, boost::beast::http::verb> methods_list_;
-
-//    boost::beast::flat_buffer buffer_; // (Must persist between reads)
-//    boost::beast::http::response<boost::beast::http::dynamic_body> res_;
-//    boost::beast::http::response<boost::beast::http::string_body> req_;
-
 };
 
 } //namespace
