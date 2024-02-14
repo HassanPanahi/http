@@ -101,19 +101,19 @@ using tcp = net::ip::tcp;           // from <boost/asio/ip/tcp.hpp>
 int main(int argc, char* argv[])
 {
 
-    hp::http::BoostRestServer server("0.0.0.0", 8585);
-    server.add_path(hp::http::Methods::GET, "/info", std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    server.add_path(hp::http::Methods::PUT, "/info", std::bind(&put_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    server.start();
+//    hp::http::BoostRestServer server("0.0.0.0", 8585);
+//    server.add_path(hp::http::Methods::GET, "/info", std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+//    server.add_path(hp::http::Methods::PUT, "/info", std::bind(&put_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+//    server.start();
 
     hp::http::BoostHttpClient client("0.0.0.0", 8585);
     std::string input_data =  "{ \"panahi\" : 1}";
     std::string result;
-    auto ret = client.send_request(hp::http::Methods::GET, "/info", input_data, result, 5000);
+    auto ret = client.send_request(hp::http::Methods::GET, "/info", input_data, result, 2000);
     std::cout << "result: " << result << std::endl;
 
 
 
-    while(1)
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+//    while(1)
+//        std::this_thread::sleep_for(std::chrono::seconds(1));
 }

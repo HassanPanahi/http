@@ -45,7 +45,10 @@ void BoostRestServer::add_path(const Methods method, const std::string &uri, con
 
 BoostRestServer::~BoostRestServer()
 {
-
+    stop();
+    for(auto i = 0; i < threads_count_; i++)
+        if (ioc_threads_[i].joinable())
+            ioc_threads_[i].join();
 }
 
 void BoostRestServer::accept_connection(boost::asio::ip::tcp::acceptor &acceptor, boost::asio::ip::tcp::socket &socket)
@@ -99,7 +102,7 @@ boost::beast::http::status BoostRestServer::handle_request(const boost::beast::h
         }
 
     }  catch (...) {
-       std::cout << "exception is boost rest" << std::endl;
+        std::cout << "exception is boost rest" << std::endl;
     }
 
     return ret;
@@ -108,9 +111,9 @@ boost::beast::http::status BoostRestServer::handle_request(const boost::beast::h
 void BoostRestServer::start()
 {
     accept_connection(ip_acceptor_, tcp_socekt_);
-    v.reserve(threads_count_);
+    ioc_threads_.reserve(threads_count_);
     for(auto i = 0; i < threads_count_; i++)
-        v.emplace_back([this]{ ioc_.run(); } );
+        ioc_threads_.emplace_back([this]{ ioc_.run(); } );
     std::cout << "Http server listen to " << get_port() << " port" << std::endl;
     is_running_ = true;
 }

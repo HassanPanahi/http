@@ -53,73 +53,75 @@ unsigned int BoostHttpClient::send_async_request(const Methods method, const std
     return static_cast<unsigned int>(ret);
 }
 
-void on_timeout(boost::beast::tcp_stream& stream, const boost::system::error_code& error)
+void on_timeout(boost::beast::tcp_stream& stream, bool& expired,  const boost::system::error_code& error)
 {
-    stream.close();
+    std::cout << "*************expire " << std::endl;
+    try {
+        expired = true;
+        stream.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+    } catch (std::exception &ect) {
+        std::cout << "shutdown: " << ect.what() << std::endl;
+    }
 }
 
 unsigned int BoostHttpClient::send_request(const Methods method, const std::string &url, const std::string &params, std::string &result, const long time_out_ms)
 {
     boost::asio::io_context ioc;
-
     boost::asio::ip::tcp::resolver resolver(ioc);
     boost::beast::tcp_stream stream(ioc);
     boost::asio::io_context ioc_deadtime;
     boost::asio::deadline_timer timer_(ioc_deadtime);
     auto const results = resolver.resolve("0.0.0.0", "8585");
-    uint32_t connect_try_count = time_out_ms / 10;
-    timer_.expires_from_now(boost::posix_time::milliseconds(time_out_ms));
-    auto func = std::bind(on_timeout, std::ref(stream), std::placeholders::_1);
-    timer_.async_wait(func);
-    ioc_deadtime.run();
-    if (connect_try_count == 0) {
+    bool expired_timeout = false;
+    std::thread ioc_thread;
+    if (time_out_ms != 0) {
+        timer_.expires_from_now(boost::posix_time::milliseconds(time_out_ms));
+        ioc_thread = std::thread( [&]() {ioc_deadtime.run();} );
+    }
+    boost::beast::error_code ec;
+
+    try {
+        timer_.async_wait(std::bind(on_timeout, std::ref(stream), std::ref(expired_timeout), std::placeholders::_1));
         while(1) {
             try {
                 stream.connect(results);
                 break;
-            }  catch (std::exception &exc) {
-                std::cout << "contine: " << exc.what() << std::endl;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-    } else {
-        while(connect_try_count) {
-            try {
-                stream.connect(results);
-                break;
-            }  catch (std::exception &exc) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                connect_try_count--;
-                if (connect_try_count == 0)
-                    return static_cast<unsigned int>(boost::beast::http::status::bad_request);
+            }  catch (boost::system::system_error &exc) {
+                if (expired_timeout) {
+                    ioc_thread.join();
+                    return static_cast<unsigned int>(boost::beast::http::status::request_timeout);
+                }
             }
         }
+        boost::beast::http::request<boost::beast::http::string_body> req{boost::beast::http::verb::get, "/info", 11};
+        req.set(boost::beast::http::field::host, "0.0.0.0");
+        req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+
+
+        boost::beast::http::write(stream, req);
+
+
+
+        boost::beast::flat_buffer buffer;
+
+        boost::beast::http::response<boost::beast::http::dynamic_body> res;
+
+        boost::beast::http::read(stream, buffer, res);
+
+        std::cout << "result: " <<  res << std::endl;
+
+        stream.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+        if(ec && ec != boost::beast::errc::not_connected) {
+            std::cout << "error: " << ec.message() << std::endl;
+            throw boost::beast::system_error{ec};
+        }
+
+    } catch (std::exception &ece) {
+        std::cout << "exception: " << ece.what() << " boost: " << ec.message() << std::endl;
     }
+//    timer_.cancel()
+    ioc_thread.join();
 
-    boost::beast::http::request<boost::beast::http::string_body> req{boost::beast::http::verb::get, "/info", 11};
-    req.set(boost::beast::http::field::host, "0.0.0.0");
-    req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-
-
-     boost::beast::http::write(stream, req);
-
-
-
-    boost::beast::flat_buffer buffer;
-
-    boost::beast::http::response<boost::beast::http::dynamic_body> res;
-
-    boost::beast::http::read(stream, buffer, res);
-
-    std::cout << "result: " <<  res << std::endl;
-
-    boost::beast::error_code ec;
-    stream.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-
-    if(ec && ec != boost::beast::errc::not_connected) {
-        std::cout << "error: " << ec.message() << std::endl;
-        throw boost::beast::system_error{ec};
-    }
     return ec.value();
 }
 
