@@ -2,7 +2,8 @@
 
 namespace hp {
 
-PathAddress::PathAddress(std::string name, PathMode mode, std::vector<std::string> inputs) : inputs_(inputs), mode_(mode), name_(name)
+PathAddress::PathAddress(const std::string& name, const URISectionType mode, const std::vector<URIDynamicSection>& inputs) :
+    name_(name), mode_(mode), inputs_(inputs)
 {
 }
 
@@ -16,17 +17,17 @@ std::shared_ptr<PathAddress> PathAddress::get_next() const
     return next_;
 }
 
-void PathAddress::set_next(const std::shared_ptr<PathAddress> next)
+void PathAddress::set_next(const std::shared_ptr<PathAddress> &next)
 {
     next_ = next;
 }
 
-PathMode PathAddress::get_path_mode() const
+URISectionType PathAddress::get_path_mode() const
 {
     return mode_;
 }
 
-std::vector<std::string> PathAddress::get_inputs() const
+std::vector<URIDynamicSection> PathAddress::get_inputs() const
 {
     return inputs_;
 }

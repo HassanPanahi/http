@@ -43,21 +43,23 @@ std::shared_ptr<PathAddress> PathParser::parse(const std::string &full_path)
     current_node_ = nullptr;
     std::vector<std::string> paths = split(full_path, "/");
     for (const auto &path : paths) {
-        if (path == "<int>") {
-            auto mode = PathMode::NUMERIC;
+        if (path == "") {
+            continue;
+        } else if (path == "<int>") {
+            auto mode = URISectionType::numeric;
             set_new_node(mode, path);
         } else if (path == "<string>") {
-            auto mode = PathMode::STRING;
+            auto mode = URISectionType::string;
             set_new_node(mode, path);
         } else {
-            auto mode = PathMode::ATTRIBUTE;
+            auto mode = URISectionType::attribute;
             set_new_node(mode, path);
         }
     }
     return root_node_;
 }
 
-bool PathParser::is_same_path(const std::shared_ptr<PathAddress>& map_node, const std::shared_ptr<PathAddress>& rest_node, std::vector<std::string>& inputs)
+bool PathParser::is_same_path(const std::shared_ptr<PathAddress>& map_node, const std::shared_ptr<PathAddress>& rest_node, std::vector<URIDynamicSection>& inputs)
 {
     if (map_node == nullptr && rest_node == nullptr)
         return true;
@@ -68,22 +70,45 @@ bool PathParser::is_same_path(const std::shared_ptr<PathAddress>& map_node, cons
     auto rest = rest_node;
     auto map_mode = map->get_path_mode();
     switch (map_mode) {
-    case PathMode::NUMERIC: {
+    case URISectionType::numeric: {
         std::string key = rest->get_name();
         if (!isInt(key))
             return false;
-        inputs.push_back(key);
+        URIDynamicSection uri_section;
+        uri_section.type = URISectionType::numeric;
+        uri_section.key = key;
+        uri_section.value = "";
+        inputs.push_back(uri_section);
         break;
     }
-    case PathMode::STRING: {
+    case URISectionType::string: {
         std::string key = rest->get_name();
         if (isInt(key))
             return false;
-        inputs.push_back(key);
+        URIDynamicSection uri_section;
+        uri_section.type = URISectionType::string;
+        uri_section.key = key;
+        uri_section.value = "";
+        inputs.push_back(uri_section);
         break;
     }
-    case PathMode::ATTRIBUTE: {
-        std::string key1 = rest->get_name();
+    case URISectionType::attribute: {
+        std::string section = rest_node->get_name();
+        std::vector<std::string> parameters = split(section, "?");
+        for (auto const &param : parameters) {
+            std::vector<std::string> variables = split(param, "&");
+            for (auto const& var : variables) {
+                std::vector<std::string> key_value = split(var, "=");
+                if (key_value.size() == 2){
+                    URIDynamicSection uri_section;
+                    uri_section.type = URISectionType::parameter;
+                    uri_section.key = key_value[0];
+                    uri_section.value = key_value[1];
+                    inputs.push_back(uri_section);
+                }
+            }
+        }
+        std::string key1 = parameters[0];
         std::string key2 = map->get_name();
         if (key1 != key2)
             return false;
@@ -93,9 +118,9 @@ bool PathParser::is_same_path(const std::shared_ptr<PathAddress>& map_node, cons
     return is_same_path(map->get_next(), rest->get_next(), inputs);
 }
 
-void PathParser::set_new_node(const PathMode mode, const std::string name)
+void PathParser::set_new_node(const URISectionType mode, const std::string &name)
 {
-    std::vector<std::string> inputs;
+    std::vector<URIDynamicSection> inputs;
     auto new_node = std::make_shared<PathAddress>(name, mode, inputs);
 
     if (root_node_ == nullptr) {

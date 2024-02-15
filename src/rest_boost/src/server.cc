@@ -72,7 +72,7 @@ boost::beast::http::status BoostRestServer::handle_request(const boost::beast::h
         PathParser path_parser;
         auto rest_node = path_parser.parse(path);
         for (const auto &map_node : parser->second) {
-            std::vector<std::string> inputs;
+            std::vector<URIDynamicSection> inputs;
             bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
             if (is_same) {
                 auto handler = map_node.second.second;
@@ -89,7 +89,7 @@ boost::beast::http::status BoostRestServer::handle_request(const boost::beast::h
             PathParser path_parser;
             auto rest_node = path_parser.parse(path);
             for (const auto &map_node : proto_parser->second) {
-                std::vector<std::string> inputs;
+                std::vector<URIDynamicSection> inputs;
                 bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
                 if (is_same) {
                     auto msg_id = handler_msg_default_[new_method][path];
