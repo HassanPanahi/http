@@ -1,6 +1,5 @@
 #include "client.h"
 
-
 namespace hp {
 namespace http {
 

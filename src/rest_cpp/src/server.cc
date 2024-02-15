@@ -6,78 +6,101 @@
 namespace hp {
 namespace http {
 
-Server::Server(const std::string& ip_address, unsigned short port) : Server(std::make_shared<PathParser>(), ip_address, port)
+CppRestServer::CppRestServer(const std::string& ip_address, unsigned short port) :
+    CppRestServer(ip_address, port, std::make_shared<PathParser>())
 {
 
 }
 
-Server::Server(std::shared_ptr<PathParser> path_parser, const std::string& ip_address, unsigned short port) : path_parser_(path_parser), url_(ip_address), port_(port)
+CppRestServer::CppRestServer(const std::string& ip_address, unsigned short port, const std::shared_ptr<PathParser> &path_parser) : path_parser_(path_parser), url_(ip_address), port_(port)
 {
     is_running_ = false;
     main_url_ = "http://"+ url_+ ":"+ std::to_string(port);
-    http_listener_ = web::http::experimental::listener::http_listener(web::uri(U(main_url_)));
+    http_listener_ = web::http::experimental::listener::http_listener(web::uri(U(main_url_)));    
+
+//    methods_list_[web::http::methods::PUT]     = Methods::PUT;
+//    methods_list_[web::http::methods::DEL]     = Methods::DEL;
+//    methods_list_[web::http::methods::HEAD]    = Methods::HEAD;
+//    methods_list_[web::http::methods::POST]    = Methods::POST;
+//    methods_list_[web::http::methods::TRCE]    = Methods::TRCE;
+//    methods_list_[web::http::methods::PATCH]   = Methods::PATCH;
+//    methods_list_[web::http::methods::MERGE]   = Methods::MERGE;
+//    methods_list_[web::http::methods::OPTIONS] = Methods::OPTIONS;
+//    methods_list_[web::http::methods::CONNECT] = Methods::CONNECT;
 }
 
-void Server::add_get_path(const std::string& path, std::function<std::string(std::vector<std::string>)> func)
+void CppRestServer::add_path(const Methods method, const std::string &uri, const PutFunctionPtr &func)
 {
-    auto path_node = path_parser_->parse(path);
-    get_methods_[path_node] = func;
+    auto path_node = path_parser_->parse(uri);
+    handler_default_[method][uri] = std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>(path_node, func);
 }
 
-void Server::add_put_path(const std::string& path, std::function<std::string(std::vector<std::string>, std::string)> func)
+void CppRestServer::add_path(const Methods method, const std::string &uri, const uint32_t protobuf_msg, const ProtobufFunctionPtr &func)
 {
-    auto path_node = path_parser_->parse(path);
-    put_methods_[path_node] = func;
+    auto path_node = path_parser_->parse(uri);
+    handler_protobuf_default_[method][uri] = std::pair<std::shared_ptr<PathAddress>, ProtobufFunctionPtr>(path_node, func);
+    handler_msg_default_[method][uri] = protobuf_msg;
 }
 
-std::string Server::find_put_request(const std::string &path, const std::string &put_data)
+web::http::status_codes CppRestServer::handle_request(const web::http::http_request& message, const Methods &method)
 {
-    auto path_parser = std::make_shared<PathParser>();
-    auto rest_node = path_parser->parse(path);
-    std::string result = "Path is not correct!!!";
-    bool find = false;
-    for (auto map_node : put_methods_) {
-        std::vector<std::string> inputs;
-        if (path_parser->is_same_path(map_node.first, rest_node, inputs)) {
-            result = map_node.second(inputs, put_data);
-            find = true;
-            break;
-        }
-    }
-    return result;
+//    auto rest_method = methods_list_[method];
+//    auto parser = handler_default_.find(method);
+//    result = "This uri doesn't support";
+//    auto ret = web::http::status_codes::BadRequest;
+//    if (parser != handler_default_.end()) {
+//        PathParser path_parser;
+//        auto rest_node = path_parser.parse(path);
+//        for (const auto &map_node : parser->second) {
+//            std::vector<URIDynamicSection> inputs;
+//            bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
+//            if (is_same) {
+//                auto handler = map_node.second.second;
+////                ret = static_cast<web::http::status_codes>(handler(inputs, put_data, result));
+//                break;
+//            }
+//        }
+//    }
+
+//    auto proto_parser = handler_protobuf_default_.find(method);
+//    try {
+//        if (proto_parser != handler_protobuf_default_.end()) {
+//            PathParser path_parser;
+//            auto rest_node = path_parser.parse(path);
+//            for (const auto &map_node : proto_parser->second) {
+//                std::vector<URIDynamicSection> inputs;
+//                bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
+//                if (is_same) {
+//                    auto msg_id = handler_msg_default_[method][path];
+//                    auto msg = msg_validator_->get_message(msg_id, put_data);
+//                    auto proto_ptr_func = map_node.second.second;
+////                    ret = static_cast<web::http::status_codes>(proto_ptr_func(inputs, msg, result));
+//                    break;
+//                }
+//            }
+//        }
+
+//    }  catch (...) {
+//        std::cout << "exception is boost rest" << std::endl;
+//    }
+
+//    return ret;
 }
 
-std::string Server::find_get_request(const std::string &path)
-{
-    auto path_parser = std::make_shared<PathParser>();
-    auto rest_node = path_parser->parse(path);
-    std::string result = "Path is not correct!!!";
-    bool find = false;
-    for (auto map_node : get_methods_) {
-        std::vector<std::string> inputs;
-        bool is_same = path_parser->is_same_path(map_node.first, rest_node, inputs);
-        if (is_same) {
-            result = map_node.second(inputs);
-            find = true;
-            break;
-        }
-    }
-    return result;
-}
 
-void Server::start(const std::vector<RestMethods> &methods)
+void CppRestServer::start()
 {
-    for (auto method : methods) {
-        if (method == RestMethods::GET) {
-            http_listener_.support(web::http::methods::GET, std::bind(&Server::handle_get, this, std::placeholders::_1));
-        }
-        else if (method == RestMethods::PUT) {
-            http_listener_.support(web::http::methods::PUT, std::bind(&Server::handle_put, this, std::placeholders::_1));
-        } else {
-            std::cout << "Method not implement!!!" << std::endl;
-            return;
-        }
-    }
+    http_listener_.support(std::bind(&CppRestServer::handle_request, this, std::placeholders::_1, Methods::GET));
+    http_listener_.support(std::bind(&CppRestServer::handle_request, this, std::placeholders::_1, Methods::PUT));
+    http_listener_.support(std::bind(&CppRestServer::handle_request, this, std::placeholders::_1, Methods::DEL));
+    http_listener_.support(std::bind(&CppRestServer::handle_request, this, std::placeholders::_1, Methods::HEAD));
+    http_listener_.support(std::bind(&CppRestServer::handle_request, this, std::placeholders::_1, Methods::TRCE));
+    http_listener_.support(std::bind(&CppRestServer::handle_request, this, std::placeholders::_1, Methods::MERGE));
+    http_listener_.support(std::bind(&CppRestServer::handle_request, this, std::placeholders::_1, Methods::PATCH));
+    http_listener_.support(std::bind(&CppRestServer::handle_request, this, std::placeholders::_1, Methods::POST));
+    http_listener_.support(std::bind(&CppRestServer::handle_request, this, std::placeholders::_1, Methods::CONNECT));
+    http_listener_.support(std::bind(&CppRestServer::handle_request, this, std::placeholders::_1, Methods::OPTIONS));
+
     try {
         http_listener_.open().wait();
         is_running_ = true;
@@ -87,65 +110,26 @@ void Server::start(const std::vector<RestMethods> &methods)
     }
 }
 
-void Server::stop()
+void CppRestServer::stop()
 {
     http_listener_.close().wait();
 }
 
-bool Server::is_running() const
+bool CppRestServer::is_running() const
 {
     return is_running_;
 }
 
-std::string Server::get_url() const
+std::string CppRestServer::get_url() const
 {
     return url_;
 }
 
-unsigned short Server::get_port() const
+unsigned short CppRestServer::get_port() const
 {
     return port_;
 }
 
-void Server::handle_get(web::http::http_request message)
-{
-    auto paths = web::http::uri::split_path(web::http::uri::decode(message.relative_uri().path()));
-    std::string path;
-    if (paths.size() == 0) {
-        message.reply(web::http::status_codes::BadRequest, "Wrong Path", "application/octet-stream");
-    } else {
-        path += paths[0];
-        for (unsigned int i = 1; i < paths.size(); ++i)
-            path += "/" + paths[i];
-    }
-    try {
-        std::string name = find_get_request(path);
-        message.reply(web::http::status_codes::OK, name, "application/octet-stream");
-    } catch (std::string &e) {
-        std::cout << "Server Handle Get has error: " <<  e << std::endl;
-        message.reply(web::http::status_codes::BadRequest, e, "application/octet-stream");
-    }
-}
-
-void Server::handle_put(web::http::http_request message)
-{
-    auto paths = web::http::uri::split_path(web::http::uri::decode(message.relative_uri().path()));
-    std::string path;
-    if (paths.size() == 0) {
-        message.reply(web::http::status_codes::BadRequest, "Wrong Path", "application/octet-stream");
-    } else {
-        path += paths[0];
-        for (unsigned int i = 1; i < paths.size(); ++i)
-            path += "/" + paths[i];
-    }
-    try {
-        auto put_data = message.extract_string(true).get();
-        std::string name = find_put_request(path, put_data);
-        message.reply(web::http::status_codes::OK, name, "application/octet-stream");
-    } catch (std::string &e)  {
-        message.reply(web::http::status_codes::BadRequest, e, "application/octet-stream");
-    }
-}
 
 }
 }
