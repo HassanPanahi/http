@@ -9,11 +9,6 @@
 namespace hp {
 namespace http {
 
-BoostRestServer::BoostRestServer(const std::string& ip_address, unsigned short port, const uint32_t threads) :
-    BoostRestServer(ip_address, port, threads, std::make_shared<PathParser>())
-{
-}
-
 BoostRestServer::BoostRestServer(const std::string& ip_address, unsigned short port, const uint32_t threads, const std::shared_ptr<PathParser>& path_parser) :
     ioc_(threads), ip_acceptor_({ioc_, {boost::asio::ip::make_address(ip_address), port}}), tcp_socekt_{ioc_}, path_parser_(path_parser), threads_count_(threads)
 {

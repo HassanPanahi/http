@@ -3,6 +3,7 @@ project(path_parser C CXX)
 set(MODULE_NAME ${PROJECT_NAME})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -lpthread")
 
+set(CMAKE_BUILD_TYPE Debug)
 file(GLOB Srcs src/*.cc)
 set(SOURCES ${SOURCES} ${Srcs} PARENT_SCOPE)
 

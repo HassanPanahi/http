@@ -8,9 +8,8 @@ namespace hp {
 namespace http {
 
 using uri = std::string;
-using PutFunctionPtr = std::function<unsigned (const std::vector<URIDynamicSection>&, std::string& put_data, std::string& response)>;
+using PutFunctionPtr = std::function<unsigned (const std::vector<URIDynamicSection>&, std::string& request, std::string& response)>;
 using ProtobufFunctionPtr = std::function<unsigned (const std::vector<URIDynamicSection>&, std::shared_ptr<google::protobuf::Message>& input_msg, std::string& response)>;
-
 
 enum class Methods {
     GET,

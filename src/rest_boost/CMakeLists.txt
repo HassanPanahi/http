@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(rest_boost C CXX)
+project(hp_http_boost C CXX)
 set(MODULE_NAME ${PROJECT_NAME})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -lpthread")
 

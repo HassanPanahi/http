@@ -24,7 +24,6 @@ namespace http {
 class BoostRestServer : public RestServerInterface
 {
 public:
-    BoostRestServer(const std::string& ip_address, unsigned short port, const uint32_t threads = 16);
     BoostRestServer(const std::string& ip_address, unsigned short port, const uint32_t threads = 16, const std::shared_ptr<PathParser>& path_parser = nullptr);
 
     bool is_running() const;
