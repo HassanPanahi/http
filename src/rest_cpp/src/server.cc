@@ -15,6 +15,7 @@ CppRestServer::CppRestServer(const std::string& ip, unsigned short port, const s
     main_url_ = "http://"+ ip_+ ":"+ std::to_string(port_);
     http_listener_ = web::http::experimental::listener::http_listener(web::uri(U(main_url_)));
 
+    methods_list_[web::http::methods::GET]     = Methods::GET;
     methods_list_[web::http::methods::PUT]     = Methods::PUT;
     methods_list_[web::http::methods::DEL]     = Methods::DEL;
     methods_list_[web::http::methods::HEAD]    = Methods::HEAD;
@@ -47,22 +48,27 @@ void CppRestServer::set_msg_validator(const std::shared_ptr<MessageValidatorInte
 void CppRestServer::handle_request(web::http::http_request message)
 {
     auto request_method = message.method();
-    auto method = methods_list_[request_method];
-    auto path = web::http::uri::decode(message.relative_uri().path());
-    auto receive_data = message.extract_string(true).get();
-    auto parser = handler_default_.find(method);
+    auto methods_iterator = methods_list_.find(request_method);
     std::string result = "This uri doesn't support";
     auto ret = web::http::status_codes::BadRequest;
-    if (parser != handler_default_.end()) {
-        auto rest_node = path_parser_->parse(path);
-        for (const auto &map_node : parser->second) {
-            std::vector<URIDynamicSection> inputs;
-            bool is_same = path_parser_->is_same_path(map_node.second.first, rest_node, inputs);
-            if (is_same) {
-                auto handler = map_node.second.second;
-                auto ret_value = handler(inputs, receive_data, result);
-                ret = static_cast<web::http:: status_code>(ret_value);
-                break;
+    if (methods_iterator == methods_list_.end()) {
+        result = "This method doesn't support";
+        ret = web::http::status_codes::MethodNotAllowed;
+    } else {
+        auto handler = handler_default_.find(methods_iterator->second);
+        if (handler != handler_default_.end()) {
+            auto path = message.absolute_uri().to_string();
+            auto rest_node = path_parser_->parse(path);
+            for (const auto &map_node : handler->second) {
+                std::vector<URIDynamicSection> inputs;
+                bool is_same = path_parser_->is_same_path(map_node.second.first, rest_node, inputs);
+                if (is_same) {
+                    auto func_ptr = map_node.second.second;
+                    auto receive_data = message.extract_string(true).get();
+                    auto ret_value = func_ptr(inputs, receive_data, result);
+                    ret = static_cast<web::http:: status_code>(ret_value);
+                    break;
+                }
             }
         }
     }

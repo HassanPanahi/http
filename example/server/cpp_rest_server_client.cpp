@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
 {
     hp::http::CppRestServer server(SERVER_IP, SERVER_PORT);
     server.add_path(hp::http::Methods::GET, "/info/<string>/<int>/data", std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    server.add_path(hp::http::Methods::PUT, "/info", std::bind(&put_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    server.add_path(hp::http::Methods::GET, "/info", std::bind(&put_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     server.start();
 
     while(1)
