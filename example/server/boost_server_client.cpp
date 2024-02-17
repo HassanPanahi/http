@@ -32,6 +32,7 @@ unsigned put_info(const std::vector<hp::URIDynamicSection>& inputs, std::string&
 int main(int argc, char* argv[])
 {
     hp::http::BoostRestServer server(SERVER_IP, SERVER_PORT);
+//    server.set_msg_validator();
     server.add_path(hp::http::Methods::GET, "/info/<string>/<int>/data", std::bind(&get_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     server.add_path(hp::http::Methods::PUT, "/info", std::bind(&put_info, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     server.start();

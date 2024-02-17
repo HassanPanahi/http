@@ -7,9 +7,9 @@ namespace hp {
 namespace http {
 
 CppRestServer::CppRestServer(const std::string& ip, unsigned short port, const std::shared_ptr<PathParser> &path_parser) :
-    ip_(ip), port_(port)
+    ip_(ip), port_(port), path_parser_(path_parser)
 {
-    if (path_parser == nullptr)
+    if (path_parser_ == nullptr)
         path_parser_ = std::make_shared<PathParser>();
     is_running_ = false;
     main_url_ = "http://"+ ip_+ ":"+ std::to_string(port_);
@@ -52,7 +52,7 @@ void CppRestServer::handle_request(web::http::http_request message)
     std::string result = "This uri doesn't support";
     auto ret = web::http::status_codes::BadRequest;
     if (methods_iterator == methods_list_.end()) {
-        result = "This method doesn't support";
+        result = "Method "+ std::string(request_method.data())+ " doesn't support" ;
         ret = web::http::status_codes::MethodNotAllowed;
     } else {
         auto handler = handler_default_.find(methods_iterator->second);

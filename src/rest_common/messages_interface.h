@@ -3,6 +3,7 @@
 
 #include <google/protobuf/message.h>
 #include <functional>
+#include "../rest_path/include/path/path_address.h"
 
 namespace hp {
 namespace http {
@@ -28,7 +29,7 @@ enum class Methods {
 class MessageValidatorInterface
 {
 public:
-    virtual std::shared_ptr<google::protobuf::Message> get_message(const uint32_t msg_id, const std::string& put_data) = 0;
+    virtual std::shared_ptr<google::protobuf::Message> get_message(const uint32_t msg_id, const std::string& msg_json) = 0;
     //    virtual ~MessageValidatorInterface();
 };
 

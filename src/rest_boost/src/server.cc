@@ -12,6 +12,8 @@ namespace http {
 BoostRestServer::BoostRestServer(const std::string& ip_address, unsigned short port, const uint32_t threads, const std::shared_ptr<PathParser>& path_parser) :
     ioc_(threads), ip_acceptor_({ioc_, {boost::asio::ip::make_address(ip_address), port}}), tcp_socekt_{ioc_}, path_parser_(path_parser), threads_count_(threads)
 {
+    if (path_parser_ == nullptr)
+        path_parser_ = std::make_shared<PathParser>();
     is_running_ = false;
     methods_list_[boost::beast::http::verb::get]         = Methods::GET;
     methods_list_[boost::beast::http::verb::put]         = Methods::PUT;
@@ -40,7 +42,7 @@ void BoostRestServer::add_path(const Methods method, const std::string &uri, con
 
 BoostRestServer::~BoostRestServer()
 {
-    stop();
+    BoostRestServer::stop();
     for(auto i = 0; i < threads_count_; i++)
         if (ioc_threads_[i].joinable())
             ioc_threads_[i].join();

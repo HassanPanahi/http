@@ -1,7 +1,7 @@
 #ifndef MESSAGEVALIDATOR_H
 #define MESSAGEVALIDATOR_H
 
-#include "messages_interface.h"
+#include "../../rest_common/messages_interface.h"
 
 enum MessagesID
 {
