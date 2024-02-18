@@ -8,4 +8,4 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 
 add_executable(${PROJECT_NAME} "main.cpp" "message_validator.cpp" "message_validator.h")
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} protos_msg hp_http_boost)
+target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} protos_msg hp_http_boost hp_http_cpp_rest)

@@ -42,7 +42,7 @@ void CppRestServer::add_path(const Methods method, const std::string &uri, const
 
 void CppRestServer::set_msg_validator(const std::shared_ptr<MessageValidatorInterface> &msg_validator)
 {
-
+    msg_validator_ = msg_validator;
 }
 
 void CppRestServer::handle_request(web::http::http_request message)
@@ -72,6 +72,7 @@ void CppRestServer::handle_request(web::http::http_request message)
             }
         }
     }
+
     message.reply(ret, result, "application/octet-stream");
 }
 
@@ -106,6 +107,11 @@ std::string CppRestServer::get_ip() const
 unsigned short CppRestServer::get_port() const
 {
     return port_;
+}
+
+CppRestServer::~CppRestServer()
+{
+    stop();
 }
 
 

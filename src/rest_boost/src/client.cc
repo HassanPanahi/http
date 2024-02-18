@@ -83,11 +83,10 @@ unsigned int BoostHttpClient::send_request(const Methods method, const std::stri
             if (ec) {
                 ret = boost::beast::http::status::request_timeout;
             } else {
-
                 ioc_deadtime_sync_.stop();
                 response = boost::beast::buffers_to_string(res.body().data());
                 stream_sync_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-                ret = boost::beast::http::status::ok;
+                ret = res.base().result();
             }
         }
     } catch (std::exception &ece) {

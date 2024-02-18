@@ -62,8 +62,7 @@ void BoostHTTPConnection::check_deadline()
     return;
     auto self = shared_from_this();
 
-    deadline_.async_wait(
-                [self](boost::beast::error_code ec)
+    deadline_.async_wait([self](boost::beast::error_code ec)
     {
         if(!ec)
         {

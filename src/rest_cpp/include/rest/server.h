@@ -19,14 +19,14 @@ public:
 
     void stop();
     void start();
-    void add_path(const Methods method, const std::string &uri, const PutFunctionPtr &func);
     void set_msg_validator(const std::shared_ptr<MessageValidatorInterface> &msg_validator);
+    void add_path(const Methods method, const std::string &uri, const PutFunctionPtr &func);
     void add_path(const Methods method, const std::string &uri, const uint32_t msg_id, const ProtobufFunctionPtr &func);
 
     bool is_running() const;
     std::string get_ip() const;
     unsigned short get_port() const;
-
+    ~CppRestServer();
 private:
     bool is_running_;
     std::string ip_;
