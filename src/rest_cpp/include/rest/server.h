@@ -19,10 +19,6 @@ public:
 
     void stop();
     void start();
-    void set_msg_validator(const std::shared_ptr<MessageValidatorInterface> &msg_validator);
-    void add_path(const Methods method, const std::string &uri, const PutFunctionPtr &func);
-    void add_path(const Methods method, const std::string &uri, const uint32_t msg_id, const ProtobufFunctionPtr &func);
-
     bool is_running() const;
     std::string get_ip() const;
     unsigned short get_port() const;
@@ -33,14 +29,9 @@ private:
     unsigned short port_;
     std::string main_url_;
 
-    std::shared_ptr<PathParser> path_parser_;
-    std::shared_ptr<MessageValidatorInterface> msg_validator_;
     std::map<web::http::method, Methods> methods_list_;
 
     std::vector<std::vector<std::string>> paths_;
-    std::map<Methods, std::map<uri, uint32_t>> handler_msg_default_;
-    std::map<Methods, std::map<uri, std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>> > handler_default_;
-    std::map<Methods, std::map<uri, std::pair<std::shared_ptr<PathAddress>, ProtobufFunctionPtr>> > handler_protobuf_default_;
 
     web::http::experimental::listener::http_listener http_listener_;
     void handle_request(web::http::http_request message);

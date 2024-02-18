@@ -7,10 +7,13 @@ namespace hp {
 namespace http {
 
 CppRestServer::CppRestServer(const std::string& ip, unsigned short port, const std::shared_ptr<PathParser> &path_parser) :
-    ip_(ip), port_(port), path_parser_(path_parser)
+    ip_(ip), port_(port)
 {
-    if (path_parser_ == nullptr)
+    if (path_parser == nullptr)
         path_parser_ = std::make_shared<PathParser>();
+    else
+        path_parser_ = path_parser;
+
     is_running_ = false;
     main_url_ = "http://"+ ip_+ ":"+ std::to_string(port_);
     http_listener_ = web::http::experimental::listener::http_listener(web::uri(U(main_url_)));
@@ -27,23 +30,6 @@ CppRestServer::CppRestServer(const std::string& ip, unsigned short port, const s
     methods_list_[web::http::methods::CONNECT] = Methods::CONNECT;
 }
 
-void CppRestServer::add_path(const Methods method, const std::string &uri, const PutFunctionPtr &func)
-{
-    auto path_node = path_parser_->parse(uri);
-    handler_default_[method][uri] = std::pair<std::shared_ptr<PathAddress>, PutFunctionPtr>(path_node, func);
-}
-
-void CppRestServer::add_path(const Methods method, const std::string &uri, const uint32_t protobuf_msg, const ProtobufFunctionPtr &func)
-{
-    auto path_node = path_parser_->parse(uri);
-    handler_protobuf_default_[method][uri] = std::pair<std::shared_ptr<PathAddress>, ProtobufFunctionPtr>(path_node, func);
-    handler_msg_default_[method][uri] = protobuf_msg;
-}
-
-void CppRestServer::set_msg_validator(const std::shared_ptr<MessageValidatorInterface> &msg_validator)
-{
-    msg_validator_ = msg_validator;
-}
 
 void CppRestServer::handle_request(web::http::http_request message)
 {
@@ -111,7 +97,7 @@ unsigned short CppRestServer::get_port() const
 
 CppRestServer::~CppRestServer()
 {
-    stop();
+    CppRestServer::stop();
 }
 
 

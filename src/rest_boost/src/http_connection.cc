@@ -3,6 +3,20 @@
 namespace hp {
 namespace http {
 
+
+std::map<boost::beast::http::verb, Methods>  BoostHTTPConnection::methods_list_ {
+    {boost::beast::http::verb::get    , Methods::GET},
+    {boost::beast::http::verb::put    , Methods::PUT},
+    {boost::beast::http::verb::delete_, Methods::DEL},
+    {boost::beast::http::verb::head   , Methods::HEAD},
+    {boost::beast::http::verb::post   , Methods::POST},
+    {boost::beast::http::verb::trace  , Methods::TRCE},
+    {boost::beast::http::verb::patch  , Methods::PATCH},
+    {boost::beast::http::verb::merge  , Methods::MERGE},
+    {boost::beast::http::verb::options, Methods::OPTIONS},
+    {boost::beast::http::verb::connect, Methods::CONNECT}
+};
+
 BoostHTTPConnection::BoostHTTPConnection(boost::asio::ip::tcp::socket socket, const HttpRequestHanlder &http_handler) :
     http_handler_(http_handler), socket_(std::move(socket)), deadline_{socket_.get_executor(), std::chrono::seconds(0)}
 {
@@ -39,7 +53,12 @@ void BoostHTTPConnection::process_request()
     std::string content(boost::asio::buffers_begin(dynamicBuffer), boost::asio::buffers_end(dynamicBuffer));
 
     std::string result = "";
-    auto ret = http_handler_(method, path, content, result);
+    Methods new_method = Methods::Unknown;
+    auto method_iterator = methods_list_.find(method);
+    if (method_iterator != methods_list_.end())
+        new_method = method_iterator->second;
+
+    auto ret = http_handler_(new_method, path, content, result);
     response_.result(ret);
     response_.set(boost::beast::http::field::content_type, "text/plain");
     boost::beast::ostream(response_.body()) << result;
@@ -65,10 +84,7 @@ void BoostHTTPConnection::check_deadline()
     deadline_.async_wait([self](boost::beast::error_code ec)
     {
         if(!ec)
-        {
-            // Close socket to cancel any outstanding operation.
             self->socket_.close(ec);
-        }
     });
 }
 

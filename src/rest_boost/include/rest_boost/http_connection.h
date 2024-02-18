@@ -6,11 +6,12 @@
 #include <boost/beast/version.hpp>
 #include <boost/asio.hpp>
 
+#include "../../rest_common/messages_interface.h"
 
 namespace hp {
 namespace http {
 
-using HttpRequestHanlder = std::function<boost::beast::http::status (const boost::beast::http::verb& method, const std::string& path, std::string &put_data, std::string &result)>;
+using HttpRequestHanlder = std::function<unsigned int (const Methods& method, const std::string& path, std::string &put_data, std::string &result)>;
 
 class BoostHTTPConnection : public std::enable_shared_from_this<BoostHTTPConnection>
 {
@@ -29,6 +30,8 @@ private:
     boost::beast::http::response<boost::beast::http::dynamic_body> response_;
 
     boost::asio::basic_waitable_timer<std::chrono::steady_clock> deadline_;
+    static std::map<boost::beast::http::verb, Methods> methods_list_;
+
 };
 
 } // namespace
