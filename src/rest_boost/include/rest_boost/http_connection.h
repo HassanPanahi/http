@@ -17,6 +17,7 @@ class BoostHTTPConnection : public std::enable_shared_from_this<BoostHTTPConnect
 {
 public:
     BoostHTTPConnection(boost::asio::ip::tcp::socket socket, const HttpRequestHanlder& http_handler);
+    ~BoostHTTPConnection();
     void start();
 private:
     void read_request();
@@ -26,7 +27,7 @@ private:
     HttpRequestHanlder http_handler_;
     boost::asio::ip::tcp::socket socket_;
     boost::beast::flat_buffer buffer_{8192}; //TODO(HP): fix this
-    boost::beast::http::request<boost::beast::http::dynamic_body> request_;
+    boost::beast::http::request_parser<boost::beast::http::string_body> request_;
     boost::beast::http::response<boost::beast::http::dynamic_body> response_;
 
     boost::asio::basic_waitable_timer<std::chrono::steady_clock> deadline_;
