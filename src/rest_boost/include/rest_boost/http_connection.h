@@ -11,7 +11,7 @@
 namespace hp {
 namespace http {
 
-using HttpRequestHanlder = std::function<unsigned int (const Methods& method, const std::string& path, std::string &put_data, std::string &result)>;
+using HttpRequestHanlder = std::function<unsigned int (const Methods& method, const std::string& path, std::vector<URIDynamicSection>& inputs, std::string &put_data, std::string &result)>;
 
 class BoostHTTPConnection : public std::enable_shared_from_this<BoostHTTPConnection>
 {

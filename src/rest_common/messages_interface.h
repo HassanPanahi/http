@@ -60,7 +60,7 @@ public:
         msg_validator_ = msg_validator;
     }
 
-    virtual unsigned int analyze_request(const Methods& method, const std::string &path, std::string &put_data, std::string& result) final
+    virtual unsigned int analyze_request(const Methods& method, const std::string &path, std::vector<URIDynamicSection>& inputs, std::string &put_data, std::string& result) final
     {
         auto parser = handler_default_.find(method);
         result = "This uri doesn't support";
@@ -69,7 +69,6 @@ public:
             PathParser path_parser;
             auto rest_node = path_parser.parse(path);
             for (const auto &map_node : parser->second) {
-                std::vector<URIDynamicSection> inputs;
                 bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
                 if (is_same) {
                     auto handler = map_node.second.second;
@@ -85,7 +84,6 @@ public:
                 PathParser path_parser;
                 auto rest_node = path_parser.parse(path);
                 for (const auto &map_node : proto_parser->second) {
-                    std::vector<URIDynamicSection> inputs;
                     bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
                     if (is_same) {
                         auto msg_id = handler_msg_default_[method][path];

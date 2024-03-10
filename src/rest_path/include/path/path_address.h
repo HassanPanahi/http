@@ -7,16 +7,12 @@
 
 namespace hp {
 
-// numeric = just index of key, for example /streamer/<idx>/output, "<idx>" is a value. idx must be a int  //TODO(HP): <idx> can be a double
-// STRING = /setting/<string>/1 : <string> can be enything like streamer or encoder
-// ATTRIBUTE = /setting/ecoder/1/output/1   setting, encoder, output all of them are Attribute
-
 enum class URISectionType{
     numeric = 0,
     string = 1,
     attribute = 2,
     parameter = 3,
-    anchor
+    form_data = 4,
 };
 
 struct URIDynamicSection{

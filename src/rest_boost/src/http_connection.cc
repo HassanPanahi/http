@@ -39,14 +39,14 @@ void BoostHTTPConnection::read_request()
     auto self = shared_from_this();
 
     request_.get().clear();
-    request_.body_limit(10 * 1024 * 1024);
+    request_.body_limit(boost::optional<std::uint64_t>(1024* 1024 * 1024));
     boost::beast::http::async_read(socket_, buffer_, request_, [self](boost::beast::error_code ec, std::size_t bytes_transferred)
     {
         boost::ignore_unused(bytes_transferred);
         if(!ec) {
 
-            self->process_request();
             std::cout << "trasnfer: " << bytes_transferred  << std::endl;
+            self->process_request();
         }
         else
             std::cout << "error: " << ec.message() << std::endl;
@@ -58,6 +58,23 @@ void BoostHTTPConnection::process_request()
 // Access the parsed request object
    boost::beast::http::request<boost::beast::http::string_body>& req = request_.get();
 
+   size_t headers_size = 0;
+   for (const auto& header : req.base()) {
+       headers_size += header.name_string().size() + header.value().size() + 4; // Add 4 for ": " and "\r\n"
+   }
+
+   // Calculate the size of the body data
+   size_t body_size = req.body().size();
+   std::vector<URIDynamicSection> inputs;
+   // Output the sizes
+   std::cout << "Headers size: " << headers_size << " bytes" << std::endl;
+   std::cout << "Body size: " << body_size << " bytes" << std::endl;
+   auto data = req.header_type[boost::beast::http::field::content_type];
+    std::string header_content;
+   for (const auto& header : req.base())
+         header_content += header.name_string().to_string() + ": " + header.value().to_string() + "\r\n";
+   std::cout << "header content: " << header_content << std::endl;
+
    // Convert the request to a string
    std::stringstream ss;
    ss << req;
@@ -66,7 +83,7 @@ void BoostHTTPConnection::process_request()
    std::string request_str = ss.str();
 
    // Output the string representation of the request
-   std::cout << "Request:\n" << request_str << std::endl;
+   std::cout << "Request: \n" << request_str << std::endl;
 
 //    std::cout << "size: " << request_.is_done() << std::endl;
 //    response_.version(request_.get().version());
