@@ -19,6 +19,8 @@ struct URIDynamicSection{
     URISectionType type;
     std::string key;
     std::string value;
+    std::string content_type;
+    std::string data;
 };
 
 
