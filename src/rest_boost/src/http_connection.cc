@@ -3,6 +3,10 @@
 namespace hp {
 namespace http {
 
+const std::string HeaderNameString = "name=\"";
+const std::string ContentTypeString = "Content-Type";
+const std::string HeaderFileNameString = "filename=\"";
+const std::string ContentDispositionString = "Content-Disposition";
 
 std::map<boost::beast::http::verb, Methods>  BoostHTTPConnection::methods_list_ {
     {boost::beast::http::verb::get    , Methods::GET},
@@ -76,18 +80,24 @@ std::vector<std::string> split_data(const std::string& str, const std::string& d
 //};
 
 // Structure to hold each part of the form data
-struct FormDataPart {
-    std::string name;
-    std::string file_name;
-    std::string content_type;
+struct ContentType {
+    std::string type;
     std::string content;
 };
 
-std::string extract_boundary(const std::string& contentType) {
+struct FormDataPart {
+    std::string name;
+    std::string file_name;
+    ContentType header;
+};
+
+ContentType extract_content_type(const std::string& contentType) {
+    ContentType header;
     std::string boundary_title ="boundary=";
     std::string boundary_data = "";
     auto pos = contentType.find(boundary_title);
     if (pos == std::string::npos) {
+        header.type = contentType;
         std::cout << "throw an exception hp" << std::endl;
     } else {
         pos += boundary_title.size();
@@ -95,69 +105,74 @@ std::string extract_boundary(const std::string& contentType) {
         if (boundary_data.front() == '"' && boundary_data.back() == '"') //TODO(HP): Somewhere i read it that boundary may be have ""
             boundary_data = boundary_data.substr(1, boundary_data.length() - 2);
         boundary_data.push_back('\r');
+        header.type = "multipart/form-data";
+        header.content = boundary_data;
     }
-    return boundary_data;
+    return header;
 }
 
-const std::string HeaderNameString = "name=\"";
-const std::string ContentTypeString = "Content-Type";
-const std::string HeaderFileNameString = "filename=\"";
-const std::string ContentDispositionString = "Content-Disposition";
-
 //BASED ON https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
-std::vector<FormDataPart> parse_multipart_form_data(const std::string& body, const std::string& boundary) {
+std::vector<FormDataPart> parse_multipart_form_data(const std::string& body, const ContentType& header) {
+
     std::vector<FormDataPart> parts;
-    std::istringstream stream(body);
-    std::string temp_boundary = "--" + boundary;
-//    boundary.insert(boundary.end() - 2, "--");
-    std::string end_boundary = temp_boundary;
-    end_boundary.insert(end_boundary.length() - 1, "--");
-
-    std::string line;
     FormDataPart current_part;
+    if (header.type != "multipart/form-data") {
+        current_part.header.type = header.type;
+        current_part.header.content = body;
+        parts.push_back(current_part);
+    } else {
+        std::istringstream stream(body);
+        std::string temp_boundary = "--" + header.content;
+        std::string end_boundary = temp_boundary;
+        end_boundary.insert(end_boundary.length() - 1, "--");
 
-    // Flag to check if we're currently reading content
-    bool readingContent = false;
-    while (std::getline(stream, line)) {
-        if (line == temp_boundary || line == end_boundary) {
-            if (readingContent) {
-                parts.push_back(current_part);
-                current_part = FormDataPart();
-                readingContent = false;
-            }
-        } else if (!readingContent) {
-            // Parse headers
-            auto colon_pos = line.find(':');
-            if (colon_pos != std::string::npos) {
-                auto header_name = line.substr(0, colon_pos);
-                // colos_pos + 2 for : the first one is  ':' and the second one ' '
-                auto header_value = line.substr(colon_pos + 2, line.length() - 1);
+        std::string line;
 
-                if (header_name == ContentDispositionString) {
-                    auto name_pos = header_value.find(HeaderNameString);
-                    if (name_pos != std::string::npos) {
-                        auto name_end = header_value.find("\"", name_pos + HeaderNameString.size());
-                        current_part.name = header_value.substr(name_pos + HeaderNameString.size(), name_end - (name_pos + HeaderNameString.size()));
-                    }
-                    auto file_name_pos = header_value.find(HeaderFileNameString);
-                    if (file_name_pos != std::string::npos) {
-                        auto file_name_end = header_value.find("\"", file_name_pos + HeaderFileNameString.size());
-                        current_part.file_name = header_value.substr(file_name_pos + HeaderFileNameString.size(), file_name_end - (file_name_pos + HeaderFileNameString.size()));
-                    }
-                } else if (header_name == ContentTypeString) {
-                    current_part.content_type = header_value;
+        bool readingContent = false;
+        while (std::getline(stream, line)) {
+            if (line == temp_boundary || line == end_boundary) {
+                if (readingContent) {
+                    current_part.header.content.pop_back();
+                    parts.push_back(current_part);
+                    current_part = FormDataPart();
+                    readingContent = false;
                 }
-            } else if (line.empty() || line == "\r") {
-                readingContent = true;
+            } else if (!readingContent) {
+                // Parse headers
+                auto colon_pos = line.find(':');
+                if (colon_pos != std::string::npos) {
+                    auto header_name = line.substr(0, colon_pos);
+                    // colos_pos + 2 for : the first one is  ':' and the second one ' '
+                    auto header_value = line.substr(colon_pos + 2, line.length() - 1);
+
+                    if (header_name == ContentDispositionString) {
+                        auto name_pos = header_value.find(HeaderNameString);
+                        if (name_pos != std::string::npos) {
+                            auto name_end = header_value.find("\"", name_pos + HeaderNameString.size());
+                            current_part.name = header_value.substr(name_pos + HeaderNameString.size(), name_end - (name_pos + HeaderNameString.size()));
+                        }
+                        auto file_name_pos = header_value.find(HeaderFileNameString);
+                        if (file_name_pos != std::string::npos) {
+                            auto file_name_end = header_value.find("\"", file_name_pos + HeaderFileNameString.size());
+                            current_part.file_name = header_value.substr(file_name_pos + HeaderFileNameString.size(), file_name_end - (file_name_pos + HeaderFileNameString.size()));
+                        }
+                    } else if (header_name == ContentTypeString) {
+                        if (header_value[header_value.size() - 1] == '\r')
+                            header_value.pop_back();
+                        current_part.header.type = header_value;
+
+                    }
+                } else if (line.empty() || line == "\r") {
+                    readingContent = true;
+                }
+            } else {
+                if (line == "")
+                    current_part.header.content += "\n";
+                else
+                    current_part.header.content += line;
             }
-        } else {
-            if (line == "")
-                current_part.content += "\n";
-            else
-                current_part.content += line;
         }
     }
-
     return parts;
 }
 
@@ -165,72 +180,24 @@ void BoostHTTPConnection::process_request()
 {
     boost::beast::http::request<boost::beast::http::string_body>& req = request_.get();
 
-    size_t body_size = req.body().size();
     std::vector<URIDynamicSection> inputs;
     std::stringstream ss;
     ss << req.body();
     std::string request_str = ss.str();
 
-
-
     auto content_type = req.base()[boost::beast::http::field::content_type];
 
-    auto boundary_data = extract_boundary(content_type.to_string());
-    auto parts = parse_multipart_form_data(request_str, boundary_data);
-//    for (const auto& part : parts) {
-//        std::cout << "Name: " << part.name << std::endl;
-//        std::cout << "Filename: " << part.file_name << std::endl;
-//        std::cout << "Content-Type: " << part.content_type << std::endl;
-//        std::cout << "Content:\n" << part.content << std::endl << std::endl;
-//    }
+    auto header = extract_content_type(content_type.to_string());
+    auto parts = parse_multipart_form_data(request_str, header);
 
-//    std::cout  << request_str << std::endl;
-    // Output the sizes
-//    std::cout << "Headers size: " << headers_size << " bytes" << std::endl;
-//    std::cout << "Body size: " << body_size << " bytes" << std::endl;
-//    auto results = split_data(content_type.to_string(), ";");
-//    if (results[0] == "multipart/form-data") {
-//        auto boundary_data = split_data(results[1], "=");
-//        if (boundary_data.size() != 2) {
-//            std::cout << "throw an exception for boundary check!!!" << std::endl;
-//        } else {
-////            auto multiparts_data = split_data(request_str, boundary_data[1]);
-////            for (auto file : multiparts_data) {
-////                auto names = split_data(file, ";");
-////                auto var_name = split_data(names[1], "=");
-////                auto file_name = split_data(names[2], "=");
-
-////                std::cout << "var_name: " << names[1] << " filename: " << names[2];
-////            }
-//        }
-//    }
-
-
-
-
-    // Convert the request to a string
-
-    // Get the string representation of the request
-    int a = 0;
-    // Output the string representation of the request
-//    for (const auto &d : data)
-//        std::cout << "Request: \n" << data.size() << std::endl;
-
-    //    std::cout << "size: " << request_.is_done() << std::endl;
     //    response_.version(request_.get().version());
     //    response_.keep_alive(false);
     //    auto method = request_.get().method();
     //    std::string path = request_.get().target().to_string();
 
-    //    boost::beast::http::request<boost::beast::http::string_body> req;
-    //    request_.get(req);
-
-    //    // Serialize the request to a string
-    //    std::string content = boost::beast::http::to_string(req);
 
 
-    //    const auto& dynamicBuffer = request_.get().body().data();
-    //    std::string content = boost::asio::buffers_begin(dynamicBuffer), boost::asio::buffers_end(dynamicBuffer));
+
     //    std::string result = "";
     //    Methods new_method = Methods::Unknown;
     //    auto method_iterator = methods_list_.find(method);
