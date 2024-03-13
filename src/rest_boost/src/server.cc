@@ -31,7 +31,7 @@ void BoostRestServer::accept_connection(boost::asio::ip::tcp::acceptor &acceptor
 {
     ip_acceptor_.async_accept(socket, [&](boost::beast::error_code ec) {
         if(!ec) {
-            auto func = std::bind(&BoostRestServer::analyze_request, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5);
+            auto func = std::bind(&BoostRestServer::analyze_request, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
             auto http_connection = std::make_shared<BoostHTTPConnection>(std::move(socket), func);
             http_connection->start();
         }

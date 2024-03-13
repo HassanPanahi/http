@@ -50,15 +50,14 @@ void CppRestServer::handle_request(web::http::http_request message)
                 bool is_same = path_parser_->is_same_path(map_node.second.first, rest_node, inputs);
                 if (is_same) {
                     auto func_ptr = map_node.second.second;
-                    auto receive_data = message.extract_string(true).get();
-                    auto ret_value = func_ptr(inputs, receive_data, result);
+//                    auto receive_data =  message.extract_string(true).get();
+                    auto ret_value = func_ptr(inputs, result);
                     ret = static_cast<web::http:: status_code>(ret_value);
                     break;
                 }
             }
         }
     }
-
     message.reply(ret, result, "application/octet-stream");
 }
 

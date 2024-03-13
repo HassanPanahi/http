@@ -11,8 +11,8 @@ namespace hp {
 namespace http {
 
 using uri = std::string;
-using PutFunctionPtr = std::function<unsigned (const std::vector<URIDynamicSection>&, std::string& request, std::string& response)>;
-using ProtobufFunctionPtr = std::function<unsigned (const std::vector<URIDynamicSection>&, std::shared_ptr<google::protobuf::Message>& input_msg, std::string& response)>;
+using PutFunctionPtr = std::function<unsigned (const std::vector<URIDynamicSection>& request, std::string& response)>;
+using ProtobufFunctionPtr = std::function<unsigned (const std::vector<URIDynamicSection>& inputs, std::shared_ptr<google::protobuf::Message>& input_msg, std::string& response)>;
 
 enum class Methods {
     GET,
@@ -60,7 +60,7 @@ public:
         msg_validator_ = msg_validator;
     }
 
-    virtual unsigned int analyze_request(const Methods& method, const std::string &path, std::vector<URIDynamicSection>& inputs, std::string &put_data, std::string& result) final
+    virtual unsigned int analyze_request(const Methods& method, const std::string &path, std::vector<URIDynamicSection>& inputs, std::string& result) final
     {
         auto parser = handler_default_.find(method);
         result = "This uri doesn't support";
@@ -72,7 +72,7 @@ public:
                 bool is_same = path_parser.is_same_path(map_node.second.first, rest_node, inputs);
                 if (is_same) {
                     auto handler = map_node.second.second;
-                    ret = handler(inputs, put_data, result);
+                    ret = handler(inputs, result);
                     break;
                 }
             }
@@ -89,9 +89,9 @@ public:
                         auto msg_id = handler_msg_default_[method][path];
                         if (!msg_validator_)
                             throw std::runtime_error("Null pointer for msg_validator in rest server");
-                        auto msg = msg_validator_->get_message(msg_id, put_data);
-                        auto proto_ptr_func = map_node.second.second;
-                        ret = proto_ptr_func(inputs, msg, result);
+//                        auto msg = msg_validator_->get_message(msg_id, put_data);
+//                        auto proto_ptr_func = map_node.second.second;
+//                        ret = proto_ptr_func(inputs, msg, result);
                         break;
                     }
                 }

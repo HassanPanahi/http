@@ -12,7 +12,7 @@ enum class URISectionType{
     string = 1,
     attribute = 2,
     parameter = 3,
-    form_data = 4
+    data,
 };
 
 struct URIDynamicSection{
