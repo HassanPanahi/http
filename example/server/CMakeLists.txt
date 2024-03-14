@@ -14,3 +14,7 @@ target_link_libraries(${PROJECT_NAME}_boost_multipart hp_http_boost)
 set(CMAKE_BUILD_TYPE Debug)
 add_executable(${PROJECT_NAME}_cpp_rest_server_clinet "cpp_rest_server_client.cpp")
 target_link_libraries(${PROJECT_NAME}_cpp_rest_server_clinet hp_http_cpp_rest)
+
+add_executable(${PROJECT_NAME}_boost_web_socket "web_socket.cpp")
+target_link_libraries(${PROJECT_NAME}_boost_web_socket hp_http_boost)
+
