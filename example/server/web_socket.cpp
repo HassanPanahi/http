@@ -1,18 +1,3 @@
-//
-// Copyright (c) 2016-2019 Vinnie Falco (vinnie dot falco at gmail dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-// Official repository: https://github.com/boostorg/beast
-//
-
-//------------------------------------------------------------------------------
-//
-// Example: WebSocket server, asynchronous
-//
-//------------------------------------------------------------------------------
-
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/asio/dispatch.hpp>
@@ -158,13 +143,13 @@ public:
 //------------------------------------------------------------------------------
 
 // Accepts incoming connections and launches the sessions
-class listener : public std::enable_shared_from_this<listener>
+class WebSocketServer : public std::enable_shared_from_this<WebSocketServer>
 {
     net::io_context& ioc_;
     tcp::acceptor acceptor_;
 
 public:
-    listener(
+    WebSocketServer(
         net::io_context& ioc,
         tcp::endpoint endpoint)
         : ioc_(ioc)
@@ -221,7 +206,7 @@ private:
         acceptor_.async_accept(
             net::make_strand(ioc_),
             beast::bind_front_handler(
-                &listener::on_accept,
+                &WebSocketServer::on_accept,
                 shared_from_this()));
     }
 
@@ -253,7 +238,7 @@ int main(int argc, char* argv[])
     net::io_context ioc{threads};
 
     // Create and launch a listening port
-    std::make_shared<listener>(ioc, tcp::endpoint{address, port})->run();
+    std::make_shared<WebSocketServer>(ioc, tcp::endpoint{address, port})->run();
 
     // Run the I/O service on the requested number of threads
     std::vector<std::thread> v;
